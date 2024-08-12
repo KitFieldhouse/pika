@@ -1,0 +1,33 @@
+{
+  "name": "pika",
+  "version": "1.0.0",
+  "description": "A webgl2 based plotting library",
+  "main": "webpack.config.js",
+  "scripts": {
+    "test": "jest",
+    "build": "webpack",
+    "serve": "webpack serve --server-type https --open"
+  },
+  "keywords": [
+    "plotting",
+    "webgl2"
+  ],
+  "type": "module",
+  "author": "kitfield",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "*",
+    "@babel/core": "*",
+    "@babel/preset-env": "^7.25.3",
+    "babel-jest": "^29.7.0",
+    "babel-loader": "*",
+    "css-loader": "*",
+    "html-loader": "*",
+    "html-webpack-plugin": "*",
+    "jest": "^29.7.0",
+    "style-loader": "*",
+    "webpack": "*",
+    "webpack-cli": "*",
+    "webpack-dev-server": "*"
+  }
+}
