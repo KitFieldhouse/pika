@@ -11,14 +11,14 @@
 //     {"halfFloat":  {impl: this.#gl.gl.HALF_FLOAT, bitSize: 16}}];
 
 
-const typeInfo = [{"short":  {bitSize: 16}}, 
-    {"byte":  {bitSize: 8}}, 
-    {"unsignedByte":  {bitSize: 8}}, 
-    {"unsignedShort":   {bitSize: 16}} , 
-    {"int":  {bitSize: 32}}, 
-    {"unsignedInt":  {bitSize: 32}}, 
-    {"float":  {bitSize: 32}}, 
-    {"halfFloat":  {bitSize: 16}}];
+const typeInfo = {"short":  {bitSize: 16}, 
+    "byte":  {bitSize: 8}, 
+    "unsignedByte":  {bitSize: 8}, 
+    "unsignedShort":   {bitSize: 16} , 
+    "int":  {bitSize: 32}, 
+    "unsignedInt":  {bitSize: 32}, 
+    "float":  {bitSize: 32}, 
+    "halfFloat":  {bitSize: 16}};
 
 class VertexBuffer{
 
@@ -47,15 +47,21 @@ class VertexBuffer{
 
     #name;
 
+    #layoutAtoms;
 
-    static constructBufferFromAtoms(layoutAtoms, gl){
-        let buffer = new VertexBuffer(layoutAtoms, gl);
+
+    static constructBufferFromAtoms(layoutAtoms, inputInfo, gl, opts){
+        let buffer = new VertexBuffer(layoutAtoms, inputInfo, gl, opts);
 
         return [buffer, {appendData: buffer.#appendData, prependData: buffer.#prependData} , buffer.#subBuffersWithUpdaters.map(el => el.view)];
     }
 
-    constructor(layoutAtoms, gl, opts){
+    constructor(layoutAtoms, inputInfo, gl, opts){
         this.#gl = gl;
+        this.#layoutAtoms = layoutAtoms;
+
+        console.log("constuctor was called");
+        console.dir(layoutAtoms, {depth: null});
 
         let startBitIndex = 0;
         let bufferView;
@@ -64,7 +70,7 @@ class VertexBuffer{
         this.#resizeFunction = (opts && opts.resizeFunction) ? opts.resizeFunction : (repeatAmount, resizes) => repeatAmount*resizes;
         
         this.#subBuffersWithUpdaters = layoutAtoms.map((el) =>{
-            [bufferView, updateFuncs] = SubBufferView.create(startBitIndex , el, this.#resizeFunction, this.#adjustAllIndices, this);
+            [bufferView, updateFuncs] = SubBufferView.create(startBitIndex , el, inputInfo ,this.#resizeFunction, this.#adjustAllIndices);
             startBitIndex = bufferView.endBitIndex;
             return Object.assign({view: bufferView}, updateFuncs);
         });
@@ -73,7 +79,7 @@ class VertexBuffer{
     }
 
     get bufferBitSize(){
-        return this.#subBuffersWithUpdaters[this.#subBuffersWithUpdaters.length - 1].endBitIndex;
+        return this.#subBuffersWithUpdaters[this.#subBuffersWithUpdaters.length - 1].view.endBitIndex;
     }
 
     get bufferByteSize(){
@@ -188,6 +194,13 @@ class VertexBuffer{
         return identifier;
     }
 
+    get layoutAtoms(){
+        return this.#layoutAtoms;
+    }
+
+    get type(){
+        return "VertexBuffer";
+    }
 
 }
 
@@ -209,35 +222,38 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
 
     #adjustAllIndices;
 
-    #parentBuffer;
 
-    static create(startBitIndex, layoutAtom, resizeFunction, adjustAllIndices, parentBuffer){
+    static create(startBitIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices){
 
-        let view = new SubBufferView(startBitIndex, layoutAtom, resizeFunction, adjustAllIndices, parentBuffer);
+        let view = new SubBufferView(startBitIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices);
 
         return [view, {shiftBitIndices: view.#shiftBitIndices, checkResizeAppend: view.#checkResizeAppend, 
                        checkResizePrepend: view.#checkResizePrepend, adjustWriteIndexPrepend: view.#adjustWriteIndexPrepend,
                        adjustWriteIndexAppend: view.#adjustWriteIndexAppend}];
     }
 
-    constructor(startBitIndex, layoutAtom, resizeFunction, adjustAllIndices, parentBuffer){
+    constructor(startBitIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices){
 
-        this.#parentBuffer = parentBuffer;
         this.#resizeFunction = resizeFunction;
         this.#adjustAllIndices = adjustAllIndices;
 
-        this.#datumBitSize = layoutAtom.arguments.reduce((acc, el) => el.size*typeInfo[el.type].bitSize + acc , 0)
+        console.log(layoutAtom.arguments.map(el => inputInfo[el].type));
+        console.log(inputInfo);
 
-        let size =  layoutAtom.opts.size;
+        this.#datumBitSize = layoutAtom.arguments.reduce((acc, el) => inputInfo[el].size*typeInfo[inputInfo[el].type].bitSize + acc , 0)
+
+        console.log(this.#datumBitSize);
+
+        let size =  layoutAtom.opts.size ?? 100;
+        
         if(layoutAtom.repeatType === 'center' && size % 2 === 1){
             size = size + 1; // even sizes only for center repeat....
         }
 
         this.#repeatSize = size;
 
-        this.bitSize = size*this.#datumBitSize;
         this.#startBitIndex = startBitIndex;
-        this.#endBitIndex = this.#startBitIndex + this.bitSize;
+        this.#endBitIndex = this.#startBitIndex + size*this.#datumBitSize;
         
         if(layoutAtom.repeatType === 'start'){
             this.#dataStartBitIndex =this.#startBitIndex;
