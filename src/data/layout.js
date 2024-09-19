@@ -32,11 +32,11 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
     #dims = [];
     #params = {};
     #inputs;
-    #getNextFuncs = {};
 
     #getters = {}; // {x: {map: <MAP>, tree: <TREE>}} would be for a single input (x)
 
     #savedCalls = [];
+    #savedCallsStore = {};
 
     constructor(layoutArr, inputs){
 
@@ -48,9 +48,9 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
         this.#parseArray(layoutArr, [root]);
 
-        console.dir(this.#getters, { depth: null })
-        console.log(this.#getters['x'].map.get(root));
-        console.log(this.#getters['x'].tree);
+        //console.dir(this.#getters, { depth: null })
+        //console.log(this.#getters['x'].map.get(root));
+        //console.log(this.#getters['x'].tree);
 
     }
 
@@ -63,7 +63,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
         let isFlat = null; // guilty until proven innocent
 
-        console.log("parsing an array");
+        //console.log("parsing an array");
 
         for(let el of array){
 
@@ -147,7 +147,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
             if(typeof el === "object" && !(el instanceof Array)){
 
-                console.log("found object inside this array");
+                //console.log("found object inside this array");
 
                 if(el.opts.size){
                     let size = el.opts.size;
@@ -158,13 +158,13 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                     staticsArraySize = staticsArraySize + datumArraySize*size;
                     staticsByteSize = staticsByteSize + datumByteSize*size;
 
-                    console.log("statically sized object");
-                    console.log(el.opts.size);
+                    //console.log("statically sized object");
+                    //console.log(el.opts.size);
 
                 }else{
                     let [datumByteSize, datumArraySize] = this.#parseRepeat(el, portionNonStatic, [...path, {isRepeatParent: true, isFlat: isFlat, repeats: portionNonStatic} ], typer,
                         (data) => {
-                            console.log(`staticsArraySizeSoFar is ${staticsArraySizeSoFar} and nonStaticsArraySizeSoFar is ${nonStaticsArraySizeSoFar} and the portionNonStatic is ${portionNonStatic(data)}`);
+                            //console.log(`staticsArraySizeSoFar is ${staticsArraySizeSoFar} and nonStaticsArraySizeSoFar is ${nonStaticsArraySizeSoFar} and the portionNonStatic is ${portionNonStatic(data)}`);
                             return staticsArraySizeSoFar + nonStaticsArraySizeSoFar*portionNonStatic(data);
                         },
                         (data) => staticsByteSizeSoFar + nonStaticsByteSizeSoFar*portionNonStatic(data));
@@ -172,12 +172,12 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                     nonStaticsArraySize = nonStaticsArraySize + datumArraySize;
                     nonStaticsByteSize = nonStaticsByteSize + datumByteSize;
 
-                    console.log("dynamically sized object");
-                    console.log("dynamically sized, nonStaticsArraySizeSoFar: " + nonStaticsArraySizeSoFar);
+                    //console.log("dynamically sized object");
+                    //console.log("dynamically sized, nonStaticsArraySizeSoFar: " + nonStaticsArraySizeSoFar);
                 }
 
             }else if(el instanceof Array){
-                console.log("found arr inside this arr");
+                //console.log("found arr inside this arr");
                 staticsArraySize++;
                 staticsByteSize = null; // cant have byte offsets since this cannot be inside an array buffer...
 
@@ -187,7 +187,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
             }else{ // typeof el === "string" || typeof el === "symbol" must be true
 
-                console.log("found other inside this arr (hopefully either a string or a symbol)");
+                //console.log("found other inside this arr (hopefully either a string or a symbol)");
 
                 staticsArraySize++;
 
@@ -196,7 +196,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
                 let getterObject = {getter: (data) => {
 
-                    console.log(`Firing getter with data: ${data}`);
+                    //console.log(`Firing getter with data: ${data}`);
                     
                     if(typer(data)){ // is array
                         return data[staticsArraySizeSoFar + nonStaticsArraySizeSoFar*portionNonStatic(data)]
@@ -221,7 +221,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
     
     #parseRepeat(repeatObj, repeatsAlloted, path, typer, arrayOffset, byteOffset){ // need to keep track of argument level offset <--- left off here
 
-        console.log("parsing a repeat obj");
+        //console.log("parsing a repeat obj");
 
         let datumByteSize = 0;
         let datumArraySize = 0;
@@ -237,9 +237,9 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
 
                 let getterObject = {getter: (data, i) => {
-                    console.log(`Firing getter with data: ${data} and index ${i}`);
-                    console.log("getter will return: " + data[arrayOffset(data) + datumArraySizeSoFar + datumArraySize*i]);
-                    console.log("Offset: " + arrayOffset(data));
+                    //console.log(`Firing getter with data: ${data} and index ${i}`);
+                    //console.log("getter will return: " + data[arrayOffset(data) + datumArraySizeSoFar + datumArraySize*i]);
+                    //console.log("Offset: " + arrayOffset(data));
                     return data[arrayOffset(data) + datumArraySizeSoFar + datumArraySize*i];
                     }, isRepeat: true, repeats: repeatsAlloted}
 
@@ -253,10 +253,10 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
                 let getterObject = {getter: (data, i) => {
 
-                    console.log(`Firing getter with data: ${data} and index ${i}`);
+                    //console.log(`Firing getter with data: ${data} and index ${i}`);
                     
                     if(typer(data)){ // is array
-                        console.log("Getter will return: " + data[arrayOffset(data) + datumArraySizeSoFar + datumArraySize*i]);
+                        //console.log("Getter will return: " + data[arrayOffset(data) + datumArraySizeSoFar + datumArraySize*i]);
                         return data[arrayOffset(data) + datumArraySizeSoFar+ datumArraySize*i];
                     }else{ // is buffer
                         let view = new DataView(data[0]);
@@ -276,7 +276,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
             datumArraySize++;
         }
 
-        console.log("this repeat obj has a datum array size of: " + datumArraySize);
+        //console.log("this repeat obj has a datum array size of: " + datumArraySize);
 
         return [datumByteSize, datumArraySize];
 
@@ -382,24 +382,40 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
     }
 
-    // getNextValue(input){
+    getNextValue(input, data){
 
-    //     if(!this.#getters[input]){
-    //         throw new Error(`FAIL: This layout does not have data related to input ${input}`);
-    //     }
+        if(!this.#getters[input]){
+            throw new Error(`FAIL: This layout does not have data related to input ${input}`);
+        }
 
-    //     if(!this.#getNextFuncs[input]){
-    //         let [leftoverIndex, result, nextFunc] = this.#descendGetterTreeSingle(getter.tree, 0, data); 
-    //         this.#getNextFuncs[input] = nextFunc;
-    //         return result;
-    //     }
+        let leftover;
+        let result;
 
-    //     let [leftoverIndex, result, nextFunc] = this.#getNextFuncs[input]();
-    //     this.#getNextFuncs[input] = nextFunc;
+        if(!this.#savedCallsStore[input]){
+            this.#savedCallsStore[input] = [];
+            this.#savedCalls = this.#savedCallsStore[input];
+            let getter = this.#getters[input];
+            [leftover, result] = this.#descendGetterTreeSingle(getter.tree, 0, data, true);
+            return result;
+        }
 
-    //     return result;
+        this.#savedCalls = this.#savedCallsStore[input];
 
-    // }
+        while(this.#savedCalls.length !== 0){
+
+            let lastCall = this.#savedCalls.pop();
+            [leftover, result] = lastCall();
+
+            if(result){
+                break;
+            }
+
+        }
+        
+        
+        return result;
+
+    }
 
     // TODO: Notes for improvements to the getter descends....
         // --> To make it more homogenous, get rid of checking to what the child is before recursing into them, just make recurse and handle as needed.
@@ -422,7 +438,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 if(index < numberOfPts){
                     //console.log("calling getter with index: " + floor(index/childrenCnt));
 
-                    //this.#savedCalls.push(() => this.#descendGetterTree(node, ++index, data, true, 0, 0));
+                    shouldSave && this.#savedCalls.push(() => this.#descendGetterTreeSingle(node, ++index, data, true, 0, 0));
 
                     return [null, node.children[index % childrenCnt].node.getter(data, Math.floor(index/childrenCnt))];
                 }
@@ -440,6 +456,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                     if(child.node.isDataGrab){
                         if(index === 0){
                             //console.log("calling datagrab getter with i: " + i);
+                            shouldSave && this.#savedCalls.push(() => this.#descendGetterTreeSingle(node, ++index, data, true, i, j));
                             return [null, child.node.getter(data, i)]
                         }else{
                             index--;
@@ -452,6 +469,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                     let [newIndex, result] = this.#descendGetterTreeSingle(child, index, child.node.getter(data, i), shouldSave);
                     
                     if(result){
+                        shouldSave && this.#savedCalls.push(() => this.#descendGetterTreeSingle(node, ++index, data, true, i, j));
                         return [null, result];
                     }
 
@@ -463,13 +481,14 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
             //console.log("node is not a repeat parent");
 
-            for(let i = k; i < node.children.length; i++){
-                let child = node.children[i];
+            for(let j = k; j < node.children.length; j++){
+                let child = node.children[j];
                 //console.log("next iterations, not a repeat");
 
                 if(child.node.isDataGrab){
                     if(index === 0){
                         //console.log("Calling a non-repeat getter that is a datagrab");
+                        shouldSave && this.#savedCalls.push(() => this.#descendGetterTreeSingle(node, ++index, data, true, 0, j));
                         return [null, child.node.getter(data)]
                     }else{
                         index--;
@@ -482,6 +501,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 let [newIndex, result] = this.#descendGetterTreeSingle(child, index, child.node.getter ? child.node.getter(data) : data, shouldSave);
 
                 if(result){
+                    shouldSave && this.#savedCalls.push(() => this.#descendGetterTreeSingle(node, ++index, data, true, 0, j));
                     return [null, result];
                 }
 
