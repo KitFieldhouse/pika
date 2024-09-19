@@ -27,13 +27,16 @@ const rootGetter = (data) => data;
 const root = {getter: rootGetter, isRepeat: false};
 
 
-class layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
+class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
     #dims = [];
     #params = {};
     #inputs;
+    #getNextFuncs = {};
 
     #getters = {}; // {x: {map: <MAP>, tree: <TREE>}} would be for a single input (x)
+
+    #savedCalls = [];
 
     constructor(layoutArr, inputs){
 
@@ -364,47 +367,79 @@ class layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
             isMulti = true;
         }
 
+        let leftoverIndex;
+        let result;
 
-        let [leftoverIndex, result] = this.#descendGetterTreeSingle(getter.tree, indices[0], data); 
-
-        console.log("leftover Index: " + leftoverIndex);
+        if(!isMulti){
+            [leftoverIndex, result] = this.#descendGetterTreeSingle(getter.tree, indices[0], data); 
+        }else{
+            [leftoverIndex, result] = this.#descendGetterTree(getter.tree, indices, data); 
+        }
+        
+        //console.log("leftover Index: " + leftoverIndex);
 
         return result;
 
     }
 
-    #descendGetterTreeSingle(node, index, data){ // for now write this only for a single dimensional index...
+    // getNextValue(input){
+
+    //     if(!this.#getters[input]){
+    //         throw new Error(`FAIL: This layout does not have data related to input ${input}`);
+    //     }
+
+    //     if(!this.#getNextFuncs[input]){
+    //         let [leftoverIndex, result, nextFunc] = this.#descendGetterTreeSingle(getter.tree, 0, data); 
+    //         this.#getNextFuncs[input] = nextFunc;
+    //         return result;
+    //     }
+
+    //     let [leftoverIndex, result, nextFunc] = this.#getNextFuncs[input]();
+    //     this.#getNextFuncs[input] = nextFunc;
+
+    //     return result;
+
+    // }
+
+    // TODO: Notes for improvements to the getter descends....
+        // --> To make it more homogenous, get rid of checking to what the child is before recursing into them, just make recurse and handle as needed.
+
+    #descendGetterTreeSingle(node, index, data, shouldSave = false, r = 0, k = 0){ // for now write this only for a single dimensional index...
         
-        console.log("Inside tree descent, index: " + index);
+        //console.log("Inside tree descent, index: " + index);
 
         if(node.node.isRepeatParent){
 
-            console.log("node is a repeat parent");
+            //console.log("node is a repeat parent");
 
             if(node.node.isFlat){ // this implies that the single child node is a data grab node....
 
-                console.log("node is flat");
+                //console.log("node is flat");
 
                 let childrenCnt = node.children.length;
                 let numberOfPts = childrenCnt * node.node.repeats(data);
         
                 if(index < numberOfPts){
-                    console.log("calling getter with index: " + floor(index/childrenCnt));
-                    return [null, node.children[index % childrenCnt].node.getter(data, floor(index/childrenCnt))];
+                    //console.log("calling getter with index: " + floor(index/childrenCnt));
+
+                    //this.#savedCalls.push(() => this.#descendGetterTree(node, ++index, data, true, 0, 0));
+
+                    return [null, node.children[index % childrenCnt].node.getter(data, Math.floor(index/childrenCnt))];
                 }
         
                 return [index - numberOfPts, null];
         
             } // else is not flat.... have to visit each child to extract out index offset...
 
-            for(let i = 0; i < node.node.repeats(data); i++){
-                for(let child of node.children){
+            for(let i = r; i < node.node.repeats(data); i++){
+                for(let j = k; j < node.children.length; j++){
+                    let child = node.children[j];
 
-                    console.log("Iterating next repeat child");
+                    //console.log("Iterating next repeat child");
 
                     if(child.node.isDataGrab){
                         if(index === 0){
-                            console.log("calling datagrab getter with i: " + i);
+                            //console.log("calling datagrab getter with i: " + i);
                             return [null, child.node.getter(data, i)]
                         }else{
                             index--;
@@ -413,8 +448,8 @@ class layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                         continue;
                     }
 
-                    console.log("calling non-datagrab getter with i: " + i);
-                    let [newIndex, result] = this.#descendGetterTreeSingle(child, index, child.node.getter(data, i));
+                    //console.log("calling non-datagrab getter with i: " + i);
+                    let [newIndex, result] = this.#descendGetterTreeSingle(child, index, child.node.getter(data, i), shouldSave);
                     
                     if(result){
                         return [null, result];
@@ -426,15 +461,15 @@ class layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
             }
         }else{ // not a repeat parent...
 
-            console.log("node is not a repeat parent");
+            //console.log("node is not a repeat parent");
 
-            for(let child of node.children){
-
-                console.log("next iterations, not a repeat");
+            for(let i = k; i < node.children.length; i++){
+                let child = node.children[i];
+                //console.log("next iterations, not a repeat");
 
                 if(child.node.isDataGrab){
                     if(index === 0){
-                        console.log("Calling a non-repeat getter that is a datagrab");
+                        //console.log("Calling a non-repeat getter that is a datagrab");
                         return [null, child.node.getter(data)]
                     }else{
                         index--;
@@ -443,8 +478,8 @@ class layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                     continue;
                 }
 
-                console.log("Calling a non-repeat getter that is not a datagrab");
-                let [newIndex, result] = this.#descendGetterTreeSingle(child, index, child.node.getter ? child.node.getter(data) : data);
+                //console.log("Calling a non-repeat getter that is not a datagrab");
+                let [newIndex, result] = this.#descendGetterTreeSingle(child, index, child.node.getter ? child.node.getter(data) : data, shouldSave);
 
                 if(result){
                     return [null, result];
@@ -454,14 +489,41 @@ class layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
             }
         }
 
-        console.log("have not exhausted indices, returning with index: " + index);
+        //console.log("have not exhausted indices, returning with index: " + index);
 
         return [index, null];
     }
 
+    #descendGetterTree(node, indices, data){
+
+        let newIndices = [...indices];
+        let index = newIndices.shift();
+        let child = node.children[0];
+
+        if(child.node.isDataGrab){
+
+            if(indices.length !== 1){
+                throw new Error("FAIL(INTERNAL): Expected all indices to be exhausted by time data was reached.");
+            }
+
+            return child.node.getter(data, index);
+        }
+
+
+        if(node.node.isRepeatParent){
+
+            return this.#descendGetterTree(child, newIndices, child.node.getter(data, index));
+            
+        }else{
+
+            return this.#descendGetterTree(child, newIndices, child.node.getter ? child.node.getter(data) : data);
+        }
+        
+    }
+
     #calculateGetterDim(getterObj, dim){
 
-        if(getterObj.children.length > 1 && !getterObj.node.isRepeatParent){
+        if(getterObj.children.length > 1){ // && !getterObj.node.isFlat // the second part of the iff
             return NaN;
         }
 
@@ -475,7 +537,7 @@ class layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         if(getterObj.children.length === 0){
             return thisDim;
         }else{
-            return this.#calculateGetterDim(getterObj.children[0], thisDim)
+            return this.#calculateGetterDim(getterObj.children[0], thisDim); // this is a little non obvious why this works, it might be better to write this in a more self documenting way.
         }
 
     }
@@ -494,176 +556,17 @@ class layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         return this.#params.keys();
     }
 
+    getDimOfInput(input){
+        if(this.#getters[input]){
+            return null;
+        }
+
+        let getter = this.#getters[input];
+
+        return this.#calculateGetterDim(getter.tree, 0);
+    }
+
 }
 
 
-export default layout;
-
-
-      // for(let element of layoutArray){
-        //     if(typeof element === "object"){
-        //         if(!element[isLayoutObj]){
-        //             throw new Error("FAIL: Layout should be composed of only arrays and objects generated by GL.repeat variants!");
-        //         }
-
-        //         isFlat = isFlat && element.isLayout;
-        //     }
-        // }
-
-        // if(isFlat)
-
-
-        // #parseLayout(layoutVal, getter, dim, byteoffset, ptOffset, u, insideRepeat){ // TODO: are the parentRepeats really going to be needed??
-
-        //     let dataTypeCheck = () => true; // for now, based on the information found this will be adjusted
-        //     let iteratingOverRepeat;
-        //     let iterator;
-                    
-        //     let totalByteSize = [0,0];
-        //     let totalPtSize = [0,0];
-     
-        //     if(!insideRepeat){
-        //      let levelU = null;
-        //     }
-     
-     
-        //     if(layoutVal instanceof Array){
-        //      iteratingOverRepeat = false;
-        //      iterator = layoutVal;
-        //     }else{
-        //      iteratingOverRepeat = true;
-        //      iterator = layoutVal.arguments;
-        //     }
-     
-     
-        //      for(element of iterator){
-     
-        //          if(element instanceof Array){
-     
-        //              dataTypeCheck = this.#mustBeArray();
-     
-        //              let levelGetter = (array, opts, ...indices) => {
-        //                  let lastIndex = indices.pop();
-        //                  let data = getter(array, opts, ...indices)[lastIndex]
-        //                  dataTypeCheck(data);
-        //                  return data;
-        //              }
-     
-        //              this.#parseLayout(element, levelGetter, dim + 1, [0,0], [0,0], levelU, false);
-        //              totalPtSize[1] = totalPtSize[1] + 1;
-                     
-        //          }else if(typeof element === "object"){
-        //              if(!element[isLayoutObj]){
-        //                  throw new Error("FAIL: Layout should be composed of only arrays and objects generated by GL.repeat variants!");
-        //              }
-     
-        //              if(!element.isLayout){
-        //                  dataTypeCheck = this.#mustBeArray();
-        //              }
-     
-     
-     
-        //          }else{
-        //              throw new Error("FAIL: Layout should be composed of only arrays and objects generated by GL.repeat variants!");
-        //          }
-        //      }
-     
-        //      this.#dims[dim] = {stuff: 'stuff'};
-        //      return;
-        //  }
-     
-        //  #parseInFlatRepeat(layoutObj, getter, byteoffset, ptOffset, u){ // datumSize has form [a,b] where its a*u + b = totalByteSize
-             
-        //      let totalByteSize = [0,0];
-        //      let totalPtSize = [0,0]
-     
-        //      for(let arg of layoutObj.arguments){
-        //          if(typeof arg === "object"){
-        //              let [a, b, pta, ptb] = this.#parseInFlatRepeat(arg, getter, [...totalByteSize], u);
-     
-        //              if(!arg.opts.size && a){
-        //                  throw new Error("FAIL: Not enough sizing opts have been given to determine an unpacking algo!");
-        //              }else if(!arg.opts.size && !a){
-        //                  totalByteSize[0] = totalByteSize[0] + b;
-        //                  totalByteSize[1] = 0;
-     
-        //                  totalPtSize[0] = totalPtSize[0] + ptb;
-        //                  totalPtSize[1] = 0;
-        //              }else{
-        //                  totalByteSize[0] = totalByteSize[0] + arg.opts.size*a;
-        //                  totalByteSize[1] = totalByteSize[1] + arg.opts.size*b;
-     
-        //                  totalPtSize[0] = totalPtSize[0] + arg.opts.size*pta;
-        //                  totalPtSize[1] = totalPtSize[1] + arg.opts.size*ptb;
-        //              }
-        //          }else{ // must be a symbol or string, if anything else we will have thrown an error
-        //              let closeArg = arg;
-        //              let totalByteSizeSoFar = [...totalByteSize];
-        //              let totalPtSizeSoFar = [...totalPtSize];
-     
-        //              let arrayBufferGetter = (index, dataParent) =>
-        //                  {
-        //                      let data = getter(0,dataParent);
-     
-        //                      if(data.length === 1 && data[0] instanceof ArrayBuffer){
-     
-        //                          return data[dataViewGetAndSet[this.#lookupInput(closeArg).type].get](byteoffset[0]*u(dataInst) + byteoffset[1]  + 
-        //                          totalByteSizeSoFar[0]*u(dataInst) + totalByteSizeSoFar[1] + 
-        //                          (totalByteSize[0]*u(dataInst) + totalByteSize[1])*index);
-     
-        //                      }else if(data[0] instanceof Number){
-     
-        //                          return data[ptOffset[0]*u(dataInst) + ptOffset[1]  + 
-        //                          totalPtSizeSoFar[0]*u(dataInst) + totalPtSizeSoFar[1] + 
-        //                          (totalPtSize[0]*u(dataInst) + totalPtSize[1])*index];
-     
-        //                      }else{
-        //                          throw new Error("FAIL: BAD INPUT DATA FORMAT");
-        //                      }
-     
-        //                     // next thing to look at is dataum vs total size..... // totalByteSize closure vs totalByteSize so far....
-        //                  }
-     
-        //                  totalByteSize[1] = totalByteSize[1] + this.#lookupInput(arg);
-        //                  totalPtSize[1] = totalPtSize[1] + 1;
-        //          }
-        //      }
-     
-        //      return [...totalByteSize, ...totalPtSize];
-        //  }
-
-
-        // {tree: {
-        //     node: { getter: [Function: rootGetter], isRepeat: false },
-        //     children: [
-        //       {
-        //         node: {
-        //           getter: [Function: getter],
-        //           isDataGrab: true,
-        //           numberOfPts: [Function (anonymous)],
-        //           isRepeat: true,
-        //           repeats: [Function (anonymous)]
-        //         },
-        //         children: []
-        //       },
-        //       {
-        //         node: {
-        //           getter: [Function: getter],
-        //           isRepeat: true,
-        //           repeats: [Function (anonymous)]
-        //         },
-        //         children: [
-        //           {
-        //             node: {
-        //               getter: [Function: getter],
-        //               isDataGrab: true,
-        //               numberOfPts: [Function (anonymous)],
-        //               isRepeat: true,
-        //               repeats: [Function (anonymous)]
-        //             },
-        //             children: []
-        //           }
-        //         ]
-        //       }
-        //     ]
-        //   }}
+export default Layout;
