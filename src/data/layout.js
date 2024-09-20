@@ -181,8 +181,10 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 staticsArraySize++;
                 staticsByteSize = null; // cant have byte offsets since this cannot be inside an array buffer...
 
-                this.#parseArray(el, [...path, {getter: (data) =>  {console.log(`Firing getter with data: ${data}`); 
-                    return data[staticsArraySizeSoFar + nonStaticsArraySizeSoFar*portionNonStatic(data)]}
+                this.#parseArray(el, [...path, {getter: (data) =>  {
+                    //console.log(`Firing getter with data: ${data}`); 
+                    return data[staticsArraySizeSoFar + nonStaticsArraySizeSoFar*portionNonStatic(data)]
+                }
                     , isRepeat: false}]);
 
             }else{ // typeof el === "string" || typeof el === "symbol" must be true
