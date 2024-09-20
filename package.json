@@ -25,6 +25,7 @@
     "html-loader": "*",
     "html-webpack-plugin": "*",
     "jest": "^29.7.0",
+    "jest-environment-node": "^29.7.0",
     "style-loader": "*",
     "webpack": "*",
     "webpack-cli": "*",
