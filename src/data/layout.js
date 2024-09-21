@@ -41,7 +41,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
     constructor(layoutArr, inputs){
 
         if(!(layoutArr instanceof Array)){
-            throw new Error("FAIL: Layout takes a single layout array as its argument");
+            throw new Error("FAIL: Layout descriptor must be an array");
         }
 
         this.#inputs = inputs;
@@ -96,8 +96,12 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 throw new Error(`FAIL: Expected Array, got type ${typeof data}`);
             }
 
+            //console.log(data.length);
+            //console.log(data[0]);
+
             if(data.length === 1 && data[0] instanceof ArrayBuffer){
                 if(isFlat){
+                    //console.log("type is array buffer!");
                     return false;
                 }else{
                     throw new Error("FAIL: ArrayBuffer type given for a layout descriptor that is not flat!");
@@ -117,21 +121,28 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         let portionNonStatic = (data) => {
             if(typer(data)){
 
-                // console.log(data.length);
-                // console.log(staticsArraySize);
-                // console.log(nonStaticsArraySize);
+                //  console.log(data.length);
+                //  console.log(staticsArraySize);
+                //  console.log(nonStaticsArraySize);
 
                 if( (data.length - staticsArraySize) !== 0 && (data.length - staticsArraySize) % nonStaticsArraySize !== 0){
-                    throw new Error("FAIL: Can not chop up provided data array in even chunks of data descriptor!!");
+                    throw new Error("FAIL: Can not chop up provided data array in even chunks of data descriptor");
                 }
 
                 return (data.length - staticsArraySize) === 0 ? 0 : (data.length - staticsArraySize)/nonStaticsArraySize;
             }else{
-                if((data.byteLength - staticsByteSize) !== 0 && (data.byteLength - staticsByteSize) % nonStaticsByteSize !== 0){
-                    throw new Error("FAIL: Can not chop up provided data array in even chunks of data descriptor!!");
+
+                 let byteLength = data[0].byteLength;
+
+                //  console.log(byteLength);
+                //  console.log(staticsByteSize);
+                //  console.log(nonStaticsByteSize);
+
+                if((byteLength - staticsByteSize) !== 0 && (byteLength - staticsByteSize) % nonStaticsByteSize !== 0){
+                    throw new Error("FAIL: Can not chop up provided data array in even chunks of data descriptor");
                 }
 
-                return (data.byteLength - staticsByteSize) === 0 ? 0 : (data.byteLength - staticsByteSize) / nonStaticsByteSize ;
+                return (byteLength - staticsByteSize) === 0 ? 0 : (byteLength - staticsByteSize) / nonStaticsByteSize ;
             }
         }
 
@@ -262,7 +273,11 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                         return data[arrayOffset(data) + datumArraySizeSoFar+ datumArraySize*i];
                     }else{ // is buffer
                         let view = new DataView(data[0]);
-                        return view[inputInfo.getter](byteOffset(data) + datumByteSizeSoFar +  datumByteSize*i);
+                        
+                        // console.log(byteOffset(data) + datumByteSizeSoFar +  datumByteSize*i);
+                        // console.log(view[inputInfo.getter](byteOffset(data) + datumByteSizeSoFar +  datumByteSize*i, true));
+                        
+                        return view[inputInfo.getter](byteOffset(data) + datumByteSizeSoFar +  datumByteSize*i, true);
                     }
 
                 }, isDataGrab: true, numberOfPts: repeatsAlloted ,isRepeat: true, repeats: repeatsAlloted}
@@ -293,7 +308,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         let inputObject = this.#inputs.find(el => el.name === name);
 
         if(!inputObject){
-            throw new Error("FAIL: Input described that is not a valid input object!!");
+            throw new Error(`FAIL: Input "${name}" was not found for this layout`);
         }
 
         let datumByteSize = inputObject.size*typeInfo[inputObject.type].bitSize / 8;
@@ -438,7 +453,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 let numberOfPts = childrenCnt * node.node.repeats(data);
         
                 if(index < numberOfPts){
-                    //console.log("calling getter with index: " + floor(index/childrenCnt));
+                    //console.log("calling getter with index: " + Math.floor(index/childrenCnt));
 
                     shouldSave && this.#savedCalls.push(() => this.#descendGetterTreeSingle(node, ++index, data, true, 0, 0));
 
@@ -502,7 +517,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 //console.log("Calling a non-repeat getter that is not a datagrab");
                 let [newIndex, result] = this.#descendGetterTreeSingle(child, index, child.node.getter ? child.node.getter(data) : data, shouldSave);
 
-                if(result){
+                if(result !== null){
                     shouldSave && this.#savedCalls.push(() => this.#descendGetterTreeSingle(node, ++index, data, true, 0, j));
                     return [null, result];
                 }
