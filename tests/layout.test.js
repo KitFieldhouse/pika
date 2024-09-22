@@ -382,11 +382,13 @@ test("Test retrieving multi dimensional, multi repeat, buffer data grab", () =>{
 
 
 test("Test retrieving single dimensional, single repeat, array getNext datagrab", () =>{
-
-    // as a reminder:   let data = [1,2,3,4,5,6,7,8,9,10];
-    // as a reminder:   let layout = new Layout([GL.repeat('x', 'y')], inputs);
-
     expect(Array.from(layout.createInputIterator('x', data))).toEqual([1,3,5,7,9]);
+});
+
+
+
+test("Test retrieving single dimensional, single repeat, buffer getNext datagrab", () =>{
+    expect(Array.from(layout.createInputIterator('x', [byteData.buffer]))).toEqual([1,3,5,7,9]);
 });
 
 
@@ -396,6 +398,11 @@ test("Test retrieving single dimensional, multi repeat, array getNext datagrab",
     expect(Array.from(multiRepeatLayout.createInputIterator('b', multiRepeatData))).toEqual([12, 14, 16, 18, 20]);
 });
 
+test("Test retrieving single dimensional, multi repeat, buffer getNext datagrab", () =>{
+    expect(Array.from(multiRepeatLayout.createInputIterator('b', [multiRepeatDataBuffer.buffer]))).toEqual([12, 14, 16, 18, 20]);
+});
+
+
 
 // multiDimLayout;
 
@@ -404,12 +411,21 @@ test("Test retrieving multi dimensional, single repeat, array getNext datagrab",
     expect(Array.from(multiDimLayout.createInputIterator('x', multiDimData))).toEqual([1,2,3,4,5,6,6,7,8]);
 });
 
+test("Test retrieving multi dimensional, single repeat, buffer getNext datagrab", () =>{
+
+    expect(Array.from(multiDimLayout.createInputIterator('x', multiDimDataBuffer))).toEqual([1,2,3,4,5,6,6,7,8]);
+});
+
 
 // multiDimLayoutMultiRepeat;
 
 
 test("Test retrieving multi dimensional, multi repeat, array getNext datagrab", () =>{
     expect(Array.from(multiDimLayoutMultiRepeat.createInputIterator('z', multiDimDataMultiRepeat))).toEqual([3,7,11]);
+});
+
+test("Test retrieving multi dimensional, multi repeat, buffer getNext datagrab", () =>{
+    expect(Array.from(multiDimLayoutMultiRepeat.createInputIterator('z', multiDimDataMultiRepeatBuffer))).toEqual([3,7,11]);
 });
 
 
