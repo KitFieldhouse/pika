@@ -26,6 +26,61 @@ const dataViewGetAndSet = {"short":  {get: 'getInt16',set: 'setInt16'},
 const rootGetter = (data) => data; 
 const root = {getter: rootGetter, isRepeat: false};
 
+class InputGetIterator{
+
+    #rootNode;
+    #data;
+
+    #savedCallsQueue = [];
+    #savedCalls = [];
+
+    #initial = true;
+
+    constructor(data, rootNode){
+        this.#rootNode = rootNode;
+        this.#data = data
+
+    }
+
+    [Symbol.iterator]() {
+
+        return this;
+    };
+
+    next(){
+        let leftover;
+        let result = null;
+
+        if(this.#initial){
+
+            this.#initial = false;
+            [leftover, result] = descendGetterTreeSingle(this.#rootNode, 0, this.#data, this.#savedCalls);
+
+            return {done: false, value: result};
+        }
+
+        this.#savedCallsQueue = [];
+
+        while(this.#savedCalls.length !== 0){
+
+            console.log("Trying next saved call...");
+
+            let lastCall = this.#savedCalls.pop();
+            [leftover, result] = lastCall();
+
+            if(result){
+                break;
+            }
+
+        }
+
+        this.#savedCalls.push(...this.#savedCallsQueue);
+        
+        return result != null? {done: false, value: result} : {done: true};
+
+    }
+}
+
 
 class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
@@ -34,11 +89,6 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
     #inputs;
 
     #getters = {}; // {x: {map: <MAP>, tree: <TREE>}} would be for a single input (x)
-
-    #savedCalls = [];
-    #savedCallsQueue = [];
-
-    #savedCallsStore = {};
 
     constructor(layoutArr, inputs){
 
@@ -393,7 +443,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         }
 
         let getter = this.#getters[input];
-        let getterDim = this.#calculateGetterDim(getter.tree, 0);
+        let getterDim = calculateGetterDim(getter.tree, 0);
 
         if(getterDim === 0){
             throw new Error("FAIL: getter for this input has no degrees of freedom!"); // TODO: this should actually be checked in layout processing
@@ -413,9 +463,9 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         let result;
 
         if(!isMulti){
-            [leftoverIndex, result] = this.#descendGetterTreeSingle(getter.tree, indices[0], data); 
+            [leftoverIndex, result] = descendGetterTreeSingle(getter.tree, indices[0], data); 
         }else{
-            [leftoverIndex, result] = this.#descendGetterTree(getter.tree, indices, data); 
+            [leftoverIndex, result] = descendGetterTree(getter.tree, indices, data); 
         }
         
         //console.log("leftover Index: " + leftoverIndex);
@@ -424,206 +474,16 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
     }
 
-    getNextValue(input, data){
+    createInputIterator(input, data){
 
         if(!this.#getters[input]){
             throw new Error(`FAIL: This layout does not have data related to input ${input}`);
         }
 
-        let leftover;
-        let result = null;
-
-        if(!this.#savedCallsStore[input]){
-            this.#savedCallsStore[input] = [];
-
-            this.#savedCallsQueue = this.#savedCallsStore[input];
-
-            let getter = this.#getters[input];
-            console.log("initial");
-            [leftover, result] = this.#descendGetterTreeSingle(getter.tree, 0, data, true);
-            console.log("END");
-
-            return result;
-        }
-
-        this.#savedCallsQueue = [];
-        this.#savedCalls = this.#savedCallsStore[input];
-
-        console.log("Before search length: " + this.#savedCalls.length)
-
-        while(this.#savedCalls.length !== 0){
-
-            console.log("Trying next saved call...");
-
-            let lastCall = this.#savedCalls.pop();
-            [leftover, result] = lastCall();
-
-            if(result){
-                break;
-            }
-
-        }
-
-        this.#savedCalls.push(...this.#savedCallsQueue);
-
-        console.log("After search length: " +  this.#savedCalls.length);
-        
-        
-        return result;
+        return new InputGetIterator(data, this.#getters[input].tree);
 
     }
 
-    // TODO: Notes for improvements to the getter descends....
-        // --> To make it more homogenous, get rid of checking to what the child is before recursing into them, just make recurse and handle as needed.
-
-    #descendGetterTreeSingle(node, index, data, shouldSave = false, r = 0, k = 0){ // for now write this only for a single dimensional index...
-        
-        console.log("Inside tree descent, index: " + index);
-
-        if(node.node.isRepeatParent){
-
-            console.log("node is a repeat parent");
-
-            if(node.node.isFlat){ // this implies that the single child node is a data grab node....
-
-                //console.log("node is flat");
-
-                let childrenCnt = node.children.length;
-                let numberOfPts = childrenCnt * node.node.repeats(data);
-        
-                if(index < numberOfPts){
-                    //console.log("calling getter with index: " + Math.floor(index/childrenCnt));
-
-                    shouldSave && this.#savedCallsQueue.unshift(() => this.#descendGetterTreeSingle(node, index + 1, data, true, 0, 0));
-
-                    return [null, node.children[index % childrenCnt].node.getter(data, Math.floor(index/childrenCnt))];
-                }
-        
-                return [index - numberOfPts, null];
-        
-            } // else is not flat.... have to visit each child to extract out index offset...
-
-            let starterIndex = k;
-
-            for(let i = r; i < node.node.repeats(data); i++){
-                console.log("doing a repeat iteration!")
-                for(let j = starterIndex; j < node.children.length; j++){
-                    let child = node.children[j];
-
-                    //console.log("Iterating next repeat child");
-
-                    if(child.node.isDataGrab){
-                        if(index === 0){
-                            //console.log("calling datagrab getter with i: " + i);
-                            shouldSave && this.#savedCallsQueue.unshift(() => this.#descendGetterTreeSingle(node, 0, data, true, i, j + 1));
-                            return [null, child.node.getter(data, i)]
-                        }else{
-                            index--;
-                        }
-
-                        continue;
-                    }
-
-                    //console.log("calling non-datagrab getter with i: " + i);
-                    let [newIndex, result] = this.#descendGetterTreeSingle(child, index, child.node.getter(data, i), shouldSave);
-                    
-                    if(result){
-                        shouldSave && this.#savedCallsQueue.unshift(() => this.#descendGetterTreeSingle(node, 0, data, true, i, j + 1));
-                        return [null, result];
-                    }
-
-                    index = newIndex;
-
-                }
-
-                starterIndex = 0;
-            }
-        }else{ // not a repeat parent...
-
-            console.log("node is not a repeat parent");
-
-            for(let j = k; j < node.children.length; j++){
-                let child = node.children[j];
-                //console.log("next iterations, not a repeat");
-
-                if(child.node.isDataGrab){
-                    if(index === 0){
-                        //console.log("Calling a non-repeat getter that is a datagrab");
-                        shouldSave && this.#savedCallsQueue.unshift(() => this.#descendGetterTreeSingle(node, 0, data, true, 0, j + 1));
-                        return [null, child.node.getter(data)]
-                    }else{
-                        index--;
-                    }
-
-                    continue;
-                }
-
-                //console.log("Calling a non-repeat getter that is not a datagrab");
-                let [newIndex, result] = this.#descendGetterTreeSingle(child, index, child.node.getter ? child.node.getter(data) : data, shouldSave);
-
-                if(result !== null){
-                    shouldSave && this.#savedCallsQueue.unshift(() => this.#descendGetterTreeSingle(node, 0, data, true, 0, j+1));
-                    return [null, result];
-                }
-
-                index = newIndex;
-            }
-        }
-
-        //console.log("have not exhausted indices, returning with index: " + index);
-
-        return [index, null];
-    }
-
-    #descendGetterTree(node, indices, data){
-
-        let newIndices = [...indices];
-        let index = newIndices.shift();
-        let child = node.children[0];
-
-        if(child.node.isDataGrab){
-
-            if(indices.length !== 1){
-                throw new Error("FAIL(INTERNAL): Expected all indices to be exhausted by time data was reached.");
-            }
-
-            //console.log("Attempting to grab data with index: " + index);
-            return [null, child.node.getter(data, index)];
-        }
-
-
-        if(node.node.isRepeatParent){
-
-            return this.#descendGetterTree(child, newIndices, child.node.getter(data, index));
-            
-        }else{
-            // console.log("indices: ");
-            // console.log(indices);
-            return this.#descendGetterTree(child, indices, child.node.getter ? child.node.getter(data) : data);
-        }
-        
-    }
-
-    #calculateGetterDim(getterObj, dim){
-
-        if(getterObj.children.length > 1){ // && !getterObj.node.isFlat // the second part of the iff
-            return NaN;
-        }
-
-        let thisDim = dim;
-
-
-        if(getterObj.node.isRepeatParent){
-            thisDim++;
-        }
-
-        if(getterObj.children.length === 0){
-            return thisDim;
-        }else{
-            return this.#calculateGetterDim(getterObj.children[0], thisDim); // this is a little non obvious why this works, it might be better to write this in a more self documenting way.
-        }
-
-    }
 
     #mustBeArray(data){
         if(!(data instanceof Array)){
@@ -646,7 +506,160 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
         let getter = this.#getters[input];
 
-        return this.#calculateGetterDim(getter.tree, 0);
+        return calculateGetterDim(getter.tree, 0);
+    }
+
+}
+
+
+// TODO: Notes for improvements to the getter descends....
+        // --> To make it more homogenous, get rid of checking to what the child is before recursing into them, just make recurse and handle as needed.
+
+function descendGetterTreeSingle(node, index, data, savedCallsQueue = null, r = 0, k = 0){ // for now write this only for a single dimensional index...
+
+    console.log("Inside tree descent, index: " + index);
+
+    if(node.node.isRepeatParent){
+
+        console.log("node is a repeat parent");
+
+        if(node.node.isFlat){ // this implies that the single child node is a data grab node....
+
+            //console.log("node is flat");
+
+            let childrenCnt = node.children.length;
+            let numberOfPts = childrenCnt * node.node.repeats(data);
+    
+            if(index < numberOfPts){
+                //console.log("calling getter with index: " + Math.floor(index/childrenCnt));
+
+                savedCallsQueue && savedCallsQueue.unshift(() => descendGetterTreeSingle(node, index + 1, data, true, 0, 0));
+
+                return [null, node.children[index % childrenCnt].node.getter(data, Math.floor(index/childrenCnt))];
+            }
+    
+            return [index - numberOfPts, null];
+    
+        } // else is not flat.... have to visit each child to extract out index offset...
+
+        let starterIndex = k;
+
+        for(let i = r; i < node.node.repeats(data); i++){
+            console.log("doing a repeat iteration!")
+            for(let j = starterIndex; j < node.children.length; j++){
+                let child = node.children[j];
+
+                //console.log("Iterating next repeat child");
+
+                if(child.node.isDataGrab){
+                    if(index === 0){
+                        //console.log("calling datagrab getter with i: " + i);
+                        savedCallsQueue && savedCallsQueue.unshift(() => descendGetterTreeSingle(node, 0, data, true, i, j + 1));
+                        return [null, child.node.getter(data, i)]
+                    }else{
+                        index--;
+                    }
+
+                    continue;
+                }
+
+                //console.log("calling non-datagrab getter with i: " + i);
+                let [newIndex, result] = descendGetterTreeSingle(child, index, child.node.getter(data, i), savedCallsQueue);
+                
+                if(result){
+                    savedCallsQueue && savedCallsQueue.unshift(() => descendGetterTreeSingle(node, 0, data, true, i, j + 1));
+                    return [null, result];
+                }
+
+                index = newIndex;
+
+            }
+
+            starterIndex = 0;
+        }
+    }else{ // not a repeat parent...
+
+        console.log("node is not a repeat parent");
+
+        for(let j = k; j < node.children.length; j++){
+            let child = node.children[j];
+            //console.log("next iterations, not a repeat");
+
+            if(child.node.isDataGrab){
+                if(index === 0){
+                    //console.log("Calling a non-repeat getter that is a datagrab");
+                    savedCallsQueue && savedCallsQueue.unshift(() => descendGetterTreeSingle(node, 0, data, true, 0, j + 1));
+                    return [null, child.node.getter(data)]
+                }else{
+                    index--;
+                }
+
+                continue;
+            }
+
+            //console.log("Calling a non-repeat getter that is not a datagrab");
+            let [newIndex, result] = descendGetterTreeSingle(child, index, child.node.getter ? child.node.getter(data) : data, savedCallsQueue);
+
+            if(result !== null){
+                savedCallsQueue && savedCallsQueue.unshift(() => descendGetterTreeSingle(node, 0, data, true, 0, j+1));
+                return [null, result];
+            }
+
+            index = newIndex;
+        }
+    }
+
+    //console.log("have not exhausted indices, returning with index: " + index);
+
+    return [index, null];
+}
+
+function descendGetterTree(node, indices, data){
+
+    let newIndices = [...indices];
+    let index = newIndices.shift();
+    let child = node.children[0];
+
+    if(child.node.isDataGrab){
+
+        if(indices.length !== 1){
+            throw new Error("FAIL(INTERNAL): Expected all indices to be exhausted by time data was reached.");
+        }
+
+        //console.log("Attempting to grab data with index: " + index);
+        return [null, child.node.getter(data, index)];
+    }
+
+
+    if(node.node.isRepeatParent){
+
+        return descendGetterTree(child, newIndices, child.node.getter(data, index));
+        
+    }else{
+        // console.log("indices: ");
+        // console.log(indices);
+        return descendGetterTree(child, indices, child.node.getter ? child.node.getter(data) : data);
+    }
+    
+}
+
+function calculateGetterDim(getterObj, dim){
+
+    if(getterObj.children.length > 1){ // && !getterObj.node.isFlat // the second part of the iff
+        return NaN;
+    }
+
+    let thisDim = dim;
+
+
+    if(getterObj.node.isRepeatParent){
+        thisDim++;
+    }
+
+    if(getterObj.children.length === 0){
+        return thisDim;
+    }else{
+        return calculateGetterDim(getterObj.children[0], thisDim); // this is a little non obvious why this works, it might be better to write this in a more self documenting way.
     }
 
 }
