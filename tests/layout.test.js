@@ -429,5 +429,12 @@ test("Test retrieving multi dimensional, multi repeat, buffer getNext datagrab",
 });
 
 
-// // mixedTypeLayout;
+// mixedTypeLayout;
+
+
+test("Test retrieving mixed type buffer getNext datagrab", () =>{
+    expect(Array.from(mixedTypeLayout.createInputIterator('f', [mixedTypeBuffer]))).toEqual([0, 10, 20, 30, 40]);
+    expect(Array.from(mixedTypeLayout.createInputIterator('i', [mixedTypeBuffer]))).toEqual([0, 1, 2, 3, 4]);
+});
+
 
