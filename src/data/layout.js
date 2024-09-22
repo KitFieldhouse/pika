@@ -63,8 +63,6 @@ class InputGetIterator{
 
         while(this.#savedCalls.length !== 0){
 
-            console.log("Trying next saved call...");
-
             let lastCall = this.#savedCalls.pop();
             [leftover, result] = lastCall();
 
@@ -75,6 +73,9 @@ class InputGetIterator{
         }
 
         this.#savedCalls.push(...this.#savedCallsQueue.current);
+
+        // console.log("returning result: " + result);
+        // console.log(result != null);
         
         return result != null? {done: false, value: result} : {done: true};
 
@@ -187,7 +188,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 }
 
                 return (data.length - staticsArraySize) === 0 ? 0 : (data.length - staticsArraySize)/nonStaticsArraySize;
-            }else if(data !== undefined){
+            }else if(data != null){
 
                  let byteLength = data[0].byteLength;
 
@@ -517,11 +518,11 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
 function descendGetterTreeSingle(node, index, data, savedCallsQueue = null, r = 0, k = 0){ // for now write this only for a single dimensional index...
 
-    console.log("Inside tree descent, index: " + index);
+    //console.log("Inside tree descent, index: " + index);
 
     if(node.node.isRepeatParent){
 
-        console.log("node is a repeat parent");
+        //console.log("node is a repeat parent");
 
         if(node.node.isFlat){ // this implies that the single child node is a data grab node....
 
@@ -533,8 +534,8 @@ function descendGetterTreeSingle(node, index, data, savedCallsQueue = null, r = 
             if(index < numberOfPts){
                 //console.log("calling getter with index: " + Math.floor(index/childrenCnt));
                 if(savedCallsQueue){
-                    console.log(savedCallsQueue)
-                    console.log(savedCallsQueue.current);
+                    //console.log(savedCallsQueue)
+                    //console.log(savedCallsQueue.current);
                 }
                 savedCallsQueue && savedCallsQueue.current.unshift(() => descendGetterTreeSingle(node, index + 1, data, savedCallsQueue, 0, 0));
 
@@ -548,7 +549,7 @@ function descendGetterTreeSingle(node, index, data, savedCallsQueue = null, r = 
         let starterIndex = k;
 
         for(let i = r; i < node.node.repeats(data); i++){
-            console.log("doing a repeat iteration!")
+            //console.log("doing a repeat iteration!")
             for(let j = starterIndex; j < node.children.length; j++){
                 let child = node.children[j];
 
@@ -582,7 +583,7 @@ function descendGetterTreeSingle(node, index, data, savedCallsQueue = null, r = 
         }
     }else{ // not a repeat parent...
 
-        console.log("node is not a repeat parent");
+        //console.log("node is not a repeat parent");
 
         for(let j = k; j < node.children.length; j++){
             let child = node.children[j];
