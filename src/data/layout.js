@@ -31,7 +31,7 @@ class InputGetIterator{
     #rootNode;
     #data;
 
-    #savedCallsQueue = [];
+    #savedCallsQueue = {current: []};
     #savedCalls = [];
 
     #initial = true;
@@ -54,12 +54,12 @@ class InputGetIterator{
         if(this.#initial){
 
             this.#initial = false;
-            [leftover, result] = descendGetterTreeSingle(this.#rootNode, 0, this.#data, this.#savedCalls);
-
+            [leftover, result] = descendGetterTreeSingle(this.#rootNode, 0, this.#data, this.#savedCallsQueue);
+            this.#savedCalls = this.#savedCallsQueue.current;
             return {done: false, value: result};
         }
 
-        this.#savedCallsQueue = [];
+        this.#savedCallsQueue.current = [];
 
         while(this.#savedCalls.length !== 0){
 
@@ -74,7 +74,7 @@ class InputGetIterator{
 
         }
 
-        this.#savedCalls.push(...this.#savedCallsQueue);
+        this.#savedCalls.push(...this.#savedCallsQueue.current);
         
         return result != null? {done: false, value: result} : {done: true};
 
@@ -532,8 +532,11 @@ function descendGetterTreeSingle(node, index, data, savedCallsQueue = null, r = 
     
             if(index < numberOfPts){
                 //console.log("calling getter with index: " + Math.floor(index/childrenCnt));
-
-                savedCallsQueue && savedCallsQueue.unshift(() => descendGetterTreeSingle(node, index + 1, data, true, 0, 0));
+                if(savedCallsQueue){
+                    console.log(savedCallsQueue)
+                    console.log(savedCallsQueue.current);
+                }
+                savedCallsQueue && savedCallsQueue.current.unshift(() => descendGetterTreeSingle(node, index + 1, data, savedCallsQueue, 0, 0));
 
                 return [null, node.children[index % childrenCnt].node.getter(data, Math.floor(index/childrenCnt))];
             }
@@ -554,7 +557,7 @@ function descendGetterTreeSingle(node, index, data, savedCallsQueue = null, r = 
                 if(child.node.isDataGrab){
                     if(index === 0){
                         //console.log("calling datagrab getter with i: " + i);
-                        savedCallsQueue && savedCallsQueue.unshift(() => descendGetterTreeSingle(node, 0, data, true, i, j + 1));
+                        savedCallsQueue && savedCallsQueue.current.unshift(() => descendGetterTreeSingle(node, 0, data, savedCallsQueue, i, j + 1));
                         return [null, child.node.getter(data, i)]
                     }else{
                         index--;
@@ -567,7 +570,7 @@ function descendGetterTreeSingle(node, index, data, savedCallsQueue = null, r = 
                 let [newIndex, result] = descendGetterTreeSingle(child, index, child.node.getter(data, i), savedCallsQueue);
                 
                 if(result){
-                    savedCallsQueue && savedCallsQueue.unshift(() => descendGetterTreeSingle(node, 0, data, true, i, j + 1));
+                    savedCallsQueue && savedCallsQueue.current.unshift(() => descendGetterTreeSingle(node, 0, data, savedCallsQueue, i, j + 1));
                     return [null, result];
                 }
 
@@ -588,7 +591,7 @@ function descendGetterTreeSingle(node, index, data, savedCallsQueue = null, r = 
             if(child.node.isDataGrab){
                 if(index === 0){
                     //console.log("Calling a non-repeat getter that is a datagrab");
-                    savedCallsQueue && savedCallsQueue.unshift(() => descendGetterTreeSingle(node, 0, data, true, 0, j + 1));
+                    savedCallsQueue && savedCallsQueue.current.unshift(() => descendGetterTreeSingle(node, 0, data, savedCallsQueue, 0, j + 1));
                     return [null, child.node.getter(data)]
                 }else{
                     index--;
@@ -601,7 +604,7 @@ function descendGetterTreeSingle(node, index, data, savedCallsQueue = null, r = 
             let [newIndex, result] = descendGetterTreeSingle(child, index, child.node.getter ? child.node.getter(data) : data, savedCallsQueue);
 
             if(result !== null){
-                savedCallsQueue && savedCallsQueue.unshift(() => descendGetterTreeSingle(node, 0, data, true, 0, j+1));
+                savedCallsQueue && savedCallsQueue.current.unshift(() => descendGetterTreeSingle(node, 0, data, savedCallsQueue, 0, j+1));
                 return [null, result];
             }
 
