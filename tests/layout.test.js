@@ -400,16 +400,58 @@ test("Test retrieving single dimensional, single repeat, array getNext datagrab"
     expect(grabbedData).toEqual([1,3,5,7,9]);
 });
 
+
 // multiRepeatLayout;
 
+test("Test retrieving single dimensional, multi repeat, array getNext datagrab", () =>{
 
-// mixedTypeLayout;
+    let lastData = 0;
+    let grabbedData = [];
+
+    console.log('------------------------------------------------');
+
+
+    while(lastData != null){
+        lastData = multiRepeatLayout.getNextValue('b', multiRepeatData);
+        lastData && grabbedData.push(lastData);
+    }
+
+
+    // let multiRepeatLayout = new Layout([GL.repeat('x', 'y'), GL.repeat('z', 'b')], inputs);
+    // let multiRepeatData = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18, 19 , 20]; // length not divisable by 4 => can't auto chop!
+
+    console.log(grabbedData);
+    expect(grabbedData).toEqual([12, 14, 16, 18, 20]);
+});
+
+
 // multiDimLayout;
+
+test("Test retrieving multi dimensional, single repeat, array getNext datagrab", () =>{
+
+    let lastData = 0;
+    let grabbedData = [];
+
+    console.log('------------------------------------------------');
+
+
+    while(lastData != null){
+        lastData = multiDimLayout.getNextValue('x', multiDimData);
+        lastData && grabbedData.push(lastData);
+    }
+
+
+    // let multiDimLayout = new Layout([GL.repeat([GL.repeat('x')])], inputs);
+    // let multiDimData = [[1,2,3], [4,5,6], [6,7,8]];
+   
+    expect(grabbedData).toEqual([1,2,3,4,5,6,6,7,8]);
+});
+
 
 // multiDimLayoutMultiRepeat;
 
 
-test("Test retrieving single dimensional, single repeat, array getNext datagrab", () =>{
+test("Test retrieving multi dimensional, multi repeat, array getNext datagrab", () =>{
 
     let lastData = 0;
     let grabbedData = [];
@@ -428,4 +470,7 @@ test("Test retrieving single dimensional, single repeat, array getNext datagrab"
     console.log(grabbedData);
     expect(grabbedData).toEqual([3,7,11]);
 });
+
+
+// mixedTypeLayout;
 

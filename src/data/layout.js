@@ -464,7 +464,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
         }
 
-        this.#savedCalls.push(...this.#savedCallsQueue.reverse());
+        this.#savedCalls.push(...this.#savedCallsQueue);
 
         console.log("After search length: " +  this.#savedCalls.length);
         
