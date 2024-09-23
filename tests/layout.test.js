@@ -8,7 +8,14 @@ const inputs = [ {name: 'x', size: 1, type: 'float'},
 
 
 const mixed = [ {name: 'f', size: 1, type: 'float'},
-        {name: 'i', size: 1, type: 'byte'}]
+        {name: 'i', size: 1, type: 'byte'}];
+
+
+
+const inputWithVectors = [ {name: 'v', size: 3, type: 'float'},
+            {name: 'w', size: 2, type: 'float'},
+            {name: 'x', size: 1, type: 'float'},
+            {name: 'y', size: 1, type: 'float'}];
 
 
 // -------------------------------------------------------------------
@@ -436,5 +443,50 @@ test("Test retrieving mixed type buffer getNext datagrab", () =>{
     expect(Array.from(mixedTypeLayout.createInputIterator('f', [mixedTypeBuffer]))).toEqual([0, 10, 20, 30, 40]);
     expect(Array.from(mixedTypeLayout.createInputIterator('i', [mixedTypeBuffer]))).toEqual([0, 1, 2, 3, 4]);
 });
+
+// -------------------------------------------------------------------
+// --------------------Array vector grab for data-------------------
+// -------------------------------------------------------------------
+
+
+let multiDimLayoutMultiRepeatVectors = new Layout([GL.repeat([GL.repeat('v','x')]), GL.repeat([GL.repeat('w', 'y')])], inputWithVectors);
+let vectorData = [[[1,2,3], 4], [[5,6,7], 8, [9, 10, 11], 12], [[-1, -2, -3], -4], [[0,0], 1], [[1,1], 2, [2,2], 3], [[3,3], 4]]
+
+test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors", () =>{
+    expect(multiDimLayoutMultiRepeatVectors.getValue('v', vectorData, 2)).toEqual([9, 10, 11]);
+});
+
+
+test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors", () =>{
+    expect(multiDimLayoutMultiRepeatVectors.getValue('w', vectorData, 3)).toEqual([3,3]);
+});
+
+
+test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors", () =>{
+    expect(multiDimLayoutMultiRepeatVectors.getValue('y', vectorData, 3)).toEqual(4);
+});
+
+
+let multiDimLayoutMultiRepeatVectorsExp = new Layout([GL.repeat([GL.repeat('v','x')]), GL.repeat([GL.repeat('w', 'y')])], inputWithVectors, {expandVectors: ['v', 'w']});
+
+
+let vectorDataExp = [[1,2,3, 4], [5,6,7, 8, 9, 10, 11, 12], [-1, -2, -3, -4], [0,0, 1], [1,1, 2, 2,2, 3], [3,3, 4]]
+
+test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors", () =>{
+    expect(multiDimLayoutMultiRepeatVectorsExp.getValue('v', vectorDataExp, 2)).toEqual([9, 10, 11]);
+});
+
+
+test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors", () =>{
+    expect(multiDimLayoutMultiRepeatVectorsExp.getValue('w', vectorDataExp, 3)).toEqual([3,3]);
+});
+
+
+test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors", () =>{
+    expect(multiDimLayoutMultiRepeatVectorsExp.getValue('y', vectorDataExp, 3)).toEqual(4);
+});
+
+
+
 
 
