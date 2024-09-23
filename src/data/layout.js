@@ -92,7 +92,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
     #getters = {}; // {x: {map: <MAP>, tree: <TREE>}} would be for a single input (x)
 
 
-    // opts: {expandVector: []}
+    // opts: {expandVectors: []}
 
     #opts;
 
@@ -195,6 +195,8 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                     throw new Error("FAIL: Can not chop up provided data array in even chunks of data descriptor");
                 }
 
+                // console.log("PASS");
+
                 return (data.length - staticsArraySize) === 0 ? 0 : (data.length - staticsArraySize)/nonStaticsArraySize;
             }else if(data != null){
 
@@ -270,7 +272,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
                 //console.log("found other inside this arr (hopefully either a string or a symbol)");
 
-                staticsArraySize++;
+                staticsArraySize = staticsArraySize + this.#lookupInput(el).datumArraySize;
 
                 let inputInfo = this.#lookupInput(el);
                 staticsByteSize = staticsByteSize + inputInfo.datumByteSize;
@@ -354,8 +356,11 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                             return data[arrayOffset(data) + datumArraySizeSoFar+ datumArraySize*i] ?? null;
                         }else{
                             let startIndex = arrayOffset(data) + datumArraySizeSoFar+ datumArraySize*i;
-                            let slice = (data ?? []).slice(startIndex, inputInfo.datumArraySize)
-                            return slice.length === 0 ? null : data;
+                            let slice = (data ?? []).slice(startIndex, startIndex + inputInfo.datumArraySize)
+
+                            // console.log("Running slice getter. " + "startIndex: " + startIndex + ". InputSize: " + inputInfo.datumArraySize);
+
+                            return slice.length === 0 ? null : slice;
                         }
                     }else if(data != null){ // is buffer
                         let view = new DataView(data[0]);
@@ -408,8 +413,9 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
         let datumArraySize = 1;
 
-        if(this.#opts.expandVector && this.#opts.expandVector.includes(name)){
+        if(this.#opts.expandVectors && this.#opts.expandVectors.includes(name)){
             datumArraySize = inputObject.size;
+            // console.log(datumArraySize);
         }
 
         return {datumByteSize, datumArraySize, getter, setter};
