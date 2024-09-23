@@ -91,15 +91,23 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
     #getters = {}; // {x: {map: <MAP>, tree: <TREE>}} would be for a single input (x)
 
-    constructor(layoutArr, inputs){
+
+    // opts: {expandVector: []}
+
+    #opts;
+
+    constructor(layoutArr, inputs, opts = {}){
 
         if(!(layoutArr instanceof Array)){
             throw new Error("FAIL: Layout descriptor must be an array");
         }
 
+        this.#opts = opts;
+
         this.#inputs = inputs;
 
         this.#parseArray(layoutArr, [root]);
+
 
         //console.dir(this.#getters, { depth: null })
         //console.log(this.#getters['x'].map.get(root));
@@ -328,10 +336,13 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 let adjustedPath = [...path, getterObject];
 
                 this.#parseArray(arg, adjustedPath);
+
+                datumArraySize++;
                 
             }else if(typeof arg === "string" || typeof arg === "symbol"){
                 let inputInfo = this.#lookupInput(arg);
-                datumByteSize = datumByteSize + inputInfo.datumByteSize
+                datumByteSize = datumByteSize + inputInfo.datumByteSize;
+                datumArraySize = datumArraySize + inputInfo.datumArraySize;
 
                 let getterObject = {getter: (data, i) => {
 
@@ -339,7 +350,13 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                     
                     if(typer(data)){ // is array
                         // console.log("Getter will return: " + data[arrayOffset(data) + datumArraySizeSoFar + datumArraySize*i]);
-                        return data[arrayOffset(data) + datumArraySizeSoFar+ datumArraySize*i] ?? null;
+                        if(inputInfo.datumArraySize === 1){
+                            return data[arrayOffset(data) + datumArraySizeSoFar+ datumArraySize*i] ?? null;
+                        }else{
+                            let startIndex = arrayOffset(data) + datumArraySizeSoFar+ datumArraySize*i;
+                            let slice = (data ?? []).slice(startIndex, inputInfo.datumArraySize)
+                            return slice.length === 0 ? null : data;
+                        }
                     }else if(data != null){ // is buffer
                         let view = new DataView(data[0]);
                         let calcByteOffset = byteOffset(data) + datumByteSizeSoFar +  datumByteSize*i;
@@ -365,8 +382,6 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
             }else{
                 throw new Error("FAIL: Something went horribly wrong...");
             }
-
-            datumArraySize++;
         }
 
         //console.log("this repeat obj has a datum array size of: " + datumArraySize);
@@ -391,7 +406,13 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         let getter = dataViewGetAndSet[inputObject.type].get;
         let setter = dataViewGetAndSet[inputObject.type].set;
 
-        return {datumByteSize, getter, setter};
+        let datumArraySize = 1;
+
+        if(this.#opts.expandVector && this.#opts.expandVector.includes(name)){
+            datumArraySize = inputObject.size;
+        }
+
+        return {datumByteSize, datumArraySize, getter, setter};
     }
 
     #reconcileWithGetterTree(input, path){
