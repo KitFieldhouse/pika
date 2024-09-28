@@ -537,6 +537,10 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         return calculateGetterDim(getter.tree, 0);
     }
 
+    get inputs(){
+        return Object.assign({}, this.#inputs);
+    }
+
 }
 
 
