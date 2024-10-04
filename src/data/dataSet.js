@@ -2,6 +2,7 @@ import isLayoutObj from "../private/isLayoutObj.js";
 import VertexBuffer from "../buffer/vertexBuffer.js";
 import GL from "../webglHandler/webglHandler.js";
 import isDataStoreDescriptor from "../private/isDataStoreDescriptor.js";
+import Layout from "./layout.js";
 
 
 // kitfield jul 30 24
@@ -15,6 +16,7 @@ import isDataStoreDescriptor from "../private/isDataStoreDescriptor.js";
 // api bricks meaning that we are in a half-functional state. 
 
 const defaultInputs = {name: null , size: null, type: null, normalized: false}
+const inputKeys = ["name", "size", "type", "normalized"]
 
 const supportedIntTypes = ["short", "byte", "unsignedByte", 
     "unsignedShort", "int", "unsignedInt"];
@@ -50,6 +52,8 @@ class DataSet {
     #usedInputs = [];
 
     #dataStores = [];
+
+    #cachedLayouts = {};
 
     constructor(inputs, layout, gl){
         this.#gl = gl;
@@ -160,6 +164,66 @@ class DataSet {
 
         this.#dataStores.push(new VertexBuffer(vbAtoms, this.#inputs, this.#gl, opts));
         
+    }
+
+    // need to figure out generalizations of append/prepend for multi dim data.
+
+    appendData(data, layoutDesc, opts = {}){
+
+        let layout = this.#processLayoutInput(layoutDesc, opts);
+  
+        
+
+    }
+
+
+    prependData(){
+
+    }
+
+    #processLayoutInput(layoutDesc, opts = {}){
+
+        let layout;
+
+        if(layoutDesc instanceof Layout){
+            layout = layoutDesc;
+
+            if(!this.sameInputs(layout.inputs, this.#inputs)){
+                throw new Error("FAIL: layout object does not have the same input definitions as this dataset.");
+            }
+        }else if(layoutDesc instanceof Array){  // check cache to skip the parsing and object construction time costs of building a new layout.. if cache miss create a new one and cache
+                                                // TODO: is this really faster at all??
+            let layoutDescString = JSON.stringify(layoutDesc);
+
+            if(this.#cachedLayouts[layoutDescString]){
+
+                layout = this.#cachedLayouts[layoutDescString];
+
+            }else{
+                layout = new Layout(layoutDesc, this.#inputs, opts);
+
+                if(!opts.disableCache){
+                    this.#cachedLayouts[layoutDescString] = layout;
+                }
+
+            }
+            
+        }else{
+            throw new Error("FAIL: second argument to appendData must be either a layout object or an array.");
+        }
+
+        return layout
+    }
+
+
+    sameInputs(input1, input2){
+        for(let key of inputKeys){
+            if(input1[key] !== input2[key]){
+                return false;
+            }
+        }
+
+        return true
     }
 
 }
