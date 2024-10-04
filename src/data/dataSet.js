@@ -2,6 +2,7 @@ import isLayoutObj from "../private/isLayoutObj.js";
 import VertexBuffer from "../buffer/vertexBuffer.js";
 import GL from "../webglHandler/webglHandler.js";
 import isDataStoreDescriptor from "../private/isDataStoreDescriptor.js";
+import isGLObjectRef from "../private/isGLObjectRef.js";
 import Layout from "./layout.js";
 
 
@@ -168,17 +169,52 @@ class DataSet {
 
     // need to figure out generalizations of append/prepend for multi dim data.
 
-    appendData(data, layoutDesc, opts = {}){
+    appendData(data, layoutDesc, opts){
+
+        // check arguments.....
+        if(!(layoutDesc instanceof Array)){
+            if(typeof layoutDesc === 'object' && opts == null){
+                opts = layoutDesc;
+                layoutDesc = null;
+            }else{
+                throw new Error("FAIL: appendData was called with an invalid argument signature");
+            }
+        }else{
+            if(typeof opts !== 'object'){
+                throw new Error("FAIL: appendData was called with an invalid argument signature");
+            }else{
+                opts = opts || {};
+            }
+        }
+
+        let dataSource;
+        [dataSource, layoutDesc] = this.#determineDataSource(data, layoutDesc);
 
         let layout = this.#processLayoutInput(layoutDesc, opts);
-  
+
+        
         
 
     }
 
 
-    prependData(){
+    prependData(data, layoutDesc){
 
+    
+
+    }
+
+    #determineDataSource(data, layoutDesc){
+
+        if(data[isGLObjectRef]){
+            return [data.type, data.layout]
+        }else if(data instanceof Array){
+            return ["clientArray", layoutDesc]
+        }else if(data instanceof ArrayBuffer){
+            return ["clientBuffer", layoutDesc]
+        }   
+
+        throw new Error("FAIL: Data provided to append/prepend cannot be used as a data source.");
     }
 
     #processLayoutInput(layoutDesc, opts = {}){
