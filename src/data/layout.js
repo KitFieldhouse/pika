@@ -94,6 +94,17 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
     // opts: {expandVectors: []}
 
+    // all repeats that are not an ancestor of another repeat.
+    // in the future it might make sense to include repeats that are within 
+    // other repeats, as there still would be efficiencies in down bulk 
+    // copies of data in the case that they are array buffers
+    // this can be built up in a similar way to the getter trees, but for repeat 
+    // objects. 
+    // Anyways, I am not doing that now as I don't think its a crucial part of 
+    // Pika's functionality.
+
+    #loneTopFlatRepeats = []; 
+
     #opts;
 
     constructor(layoutArr, inputs, opts = {}){
@@ -123,6 +134,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         // TODO: this could probably be optimized out?? Anyways, lets give it a shot...
 
         let isFlat = null; // guilty until proven innocent
+        let isLoneRepeat = false;
 
         //console.log("parsing an array");
 
@@ -134,6 +146,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 }
 
                 isFlat = isFlat === null ? el.isFlat : el.isFlat && isFlat;
+                isLoneRepeat = (array.length === 1);
 
                 continue;
 
@@ -229,6 +242,12 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
             if(typeof el === "object" && !(el instanceof Array)){
 
                 //console.log("found object inside this array");
+
+                if(isFlat && isLoneRepeat){
+                    let pathCopy = [...path]; //TODO: not sure this is needed....
+                    let getterFromRoot = data => pathCopy.reduce( (acc, obj) => obj.getter(acc) , data);
+                    this.#loneTopFlatRepeats.push({repeat: el, getter: getterFromRoot});
+                }
 
                 if(el.opts.size){
                     let size = el.opts.size;
@@ -539,6 +558,10 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
     get inputs(){
         return Object.assign({}, this.#inputs);
+    }
+
+    get loneTopFlatRepeats(){ // TODO: this is dev only
+        return this.#loneTopFlatRepeats;
     }
 
 }
