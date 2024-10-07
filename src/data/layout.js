@@ -246,7 +246,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 if(isFlat && isLoneRepeat){
                     let pathCopy = [...path]; //TODO: not sure this is needed....
                     let getterFromRoot = data => pathCopy.reduce( (acc, obj) => obj.getter(acc) , data);
-                    this.#loneTopFlatRepeats.push({repeat: el, getter: getterFromRoot});
+                    this.#loneTopFlatRepeats.push({repeat: el, getter: getterFromRoot, typer: (data) => typer(getterFromRoot(data)), size: (data) => el.opts.size || portionNonStatic(getterFromRoot(data))});
                 }
 
                 if(el.opts.size){

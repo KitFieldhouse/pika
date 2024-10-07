@@ -26,6 +26,7 @@ test("Extracted lone flat top repeats are associated with correct getter for sim
 let compLayout = new Layout(['y', [[[GL.repeat("x", "y")]]], [[GL.repeat("z", "b")], 'x']] ,inputs)
 
 let compData = [9, [[[1,2,1,2,1,2,1,2,1,2]]], [[3,4,3,4,3,4,3,4], -4]]
+let compBufferData = [9, [[[(new Float32Array([1,2,1,2,1,2,1,2,1,2])).buffer]]], [[(new Float32Array([3,4,3,4,3,4,3,4])).buffer], -4] ]
 
 test("Extracted correct lone flat top repeats for more complex layout", () =>{
     expect(compLayout.loneTopFlatRepeats[0].repeat).toEqual(GL.repeat("x", "y"));
@@ -36,3 +37,16 @@ test("Extracted lone flat top repeats are associated with correct getter for mor
     expect(compLayout.loneTopFlatRepeats[0].getter(compData)).toEqual([1,2,1,2,1,2,1,2,1,2]);
     expect(compLayout.loneTopFlatRepeats[1].getter(compData)).toEqual( [3,4,3,4,3,4,3,4]);
 });
+
+
+test("Layout correctly calculated the number of repeats for array data", () =>{
+    expect(compLayout.loneTopFlatRepeats[0].size(compData)).toBe(5);
+    expect(compLayout.loneTopFlatRepeats[1].size(compData)).toBe(4);
+});
+
+
+test("Layout correctly calculated the number of repeats for buffer data", () =>{
+    expect(compLayout.loneTopFlatRepeats[0].size(compBufferData)).toBe(5);
+    expect(compLayout.loneTopFlatRepeats[1].size(compBufferData)).toBe(4);
+});
+
