@@ -174,7 +174,13 @@ class DataSet {
 
         let layout = this.#processLayoutInput(layoutDesc, opts);
 
-        let effects = this.#dataStores.map(el => el.requestAppend(dataSource, layout, data, opts));
+        let effects = this.#dataStores.map(el => el.sizeAppend(dataSource, layout, data, opts));
+
+        // do processing on number of points here!
+
+        effects.forEach(el => el.doAppend());
+
+        return effects.map(el => el.pointsAdded); // TODO: or something similar, way to pass info on how the dataSets have changed...
         
 
     }

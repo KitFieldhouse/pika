@@ -175,7 +175,7 @@ class VertexBuffer{
         }
 
 
-        return {pointsAdded: translatedDataSets[0].pts, doAppend: () => this.requestAppend(dataSource, translatedDataSets ,opts)}; // left off here
+        return {pointsAdded: translatedDataSets[0].pts, doAppend: () => this.requestAppend(dataSource, translatedDataSets ,opts ?? null)}; // left off here
 
     }
 
@@ -193,6 +193,7 @@ class VertexBuffer{
         }else{
             this.sizeAppend(a,b,c, opts).doAppend();
 
+            return this.numberOfPoints;
         }
 
     }
@@ -231,7 +232,7 @@ class VertexBuffer{
 
             // at this point we have data and need to update our dummy buffer....
 
-            if(offset === buffer.size){
+            if(offset === buffer.byteLength){
                 buffer = new ArrayBuffer(VertexBuffer.temporaryArrayBufferRepeats*datumByteSize);
                 view = new DataView(buffer);
                 views.push(view)
@@ -357,6 +358,10 @@ class VertexBuffer{
 
     get type(){
         return "VertexBuffer";
+    }
+
+    get numberOfPoints(){
+        this.#subBuffersWithUpdaters[0].view.size(); // as of now, all buffer views must contain the same number of points....
     }
 
 }
