@@ -1,3 +1,6 @@
+import {typeInfo, dataViewGetAndSet} from "../private/types.js"
+
+
 // all nasty type checking (array vs blob) should be done in this class
 
 
@@ -11,14 +14,8 @@
 //     {"halfFloat":  {impl: this.#gl.gl.HALF_FLOAT, bitSize: 16}}];
 
 
-const typeInfo = {"short":  {bitSize: 16}, 
-    "byte":  {bitSize: 8}, 
-    "unsignedByte":  {bitSize: 8}, 
-    "unsignedShort":   {bitSize: 16} , 
-    "int":  {bitSize: 32}, 
-    "unsignedInt":  {bitSize: 32}, 
-    "float":  {bitSize: 32}, 
-    "halfFloat":  {bitSize: 16}};
+const acceptedDataSources = ["clientArray", "clientBuffer", "VertexBuffer"];
+
 
 class VertexBuffer{
 
@@ -48,6 +45,9 @@ class VertexBuffer{
     #name;
 
     #layoutAtoms;
+    #inputInfo;
+
+    static temporaryArrayBufferRepeats = 1000; // for sizing array buffers that will be filled with unwrapped data
 
 
     static constructBufferFromAtoms(layoutAtoms, inputInfo, gl, opts){
@@ -59,6 +59,7 @@ class VertexBuffer{
     constructor(layoutAtoms, inputInfo, gl, opts){
         this.#gl = gl;
         this.#layoutAtoms = layoutAtoms;
+        this.#inputInfo = inputInfo;
 
         console.log("constuctor was called");
         console.dir(layoutAtoms, {depth: null});
@@ -72,7 +73,7 @@ class VertexBuffer{
         this.#subBuffersWithUpdaters = layoutAtoms.map((el) =>{
             [bufferView, updateFuncs] = SubBufferView.create(startBitIndex , el, inputInfo ,this.#resizeFunction, this.#adjustAllIndices);
             startBitIndex = bufferView.endBitIndex;
-            return Object.assign({view: bufferView}, updateFuncs);
+            return Object.assign({view: bufferView}, updateFuncs); // TODO: why did I do Object.assign here??
         });
 
         this.#buffer = this.#createEmptyBuffer(this.bufferByteSize);
@@ -132,6 +133,162 @@ class VertexBuffer{
                 isAppend ? buff.adjustWriteIndexAppend:
                            buff.adjustWriteIndexPrepend);
         }
+
+    }
+
+    sizeAppend(dataSource, layout, data, opts){
+
+        if(!acceptedDataSources.includes(dataSource)){
+            throw new Error(`FAIL: VertexBuffer cannot accept a data source of ${dataSource}. \n Accepted sources: ${JSON.stringify(acceptedDataSources)}`);
+        }
+
+        if(dataSource === "clientBuffer"){
+            data = [data];
+        }
+
+        // first check to see if we have any lone top flat repeats that match the layout atoms for this vertex buffer. If so, we can simply just copy the data 
+        // from its source without performing any unwrapping
+
+        let translatedDataSets = []; // array of objects of the form {data: [], pts: <number of points>}
+
+        if(!opts.skipCopyMatching){
+            translatedDataSets = this.#layoutAtoms.map(lel => {
+                let matchingLTFR = layout.loneTopFlatRepeats.find(del => this.#canDirectCopy(del, lel));
+                return matchingLTFR? {data: matchingLTFR.getter(data), pts: matchingLTFR.size(data)} : null 
+            });
+        }
+
+          // TODO: there is probably some things I can do to increase the time efficiency of sizing non-flat repeats.... ??????
+        
+        for(let i = 0; i < this.#layoutAtoms.length; i++){
+            if(!translatedDataSets[i]){
+                translatedDataSets[i] = this.#repackData(this.#layoutAtoms[i], layout, data, opts);
+            }else{
+                continue;
+            }
+        }
+
+        let differentNumberOfPtsData = translatedDataSets.find(el => el.pts !== translatedDataSets[0].pts);
+
+        if(differentNumberOfPtsData){
+            throw new Error("FAIL: Each input must have the same number of points when adding to a vertex buffer!!");
+        }
+
+
+        return {pointsAdded: translatedDataSets[0].pts, doAppend: () => this.requestAppend(dataSource, translatedDataSets ,opts)}; // left off here
+
+    }
+
+    requestAppend(a, b, c, opts){
+
+        if(arguments.length === 3){
+
+            let dataSource = a;
+            let expandedData = b;
+            let opts = c;
+
+            this.#appendData(expandedData, opts);
+
+
+        }else{
+            this.sizeAppend(a,b,c, opts).doAppend();
+
+        }
+
+    }
+
+    #repackData(layoutAtom, dataLayout, data, opts){
+
+        let datumByteSize = layoutAtom.arguments.reduce( (acc, el) => acc + typeInfo[el].bitSize, 0)/8.0;
+
+        // TODO: need to do some thinking here on if copying to an array as an intermediate causes this to be slow.
+        // left off here, need to make this a github issue and continue with unwrapping the data into an ARRAY, then 
+        // it would be interesting to implement a buffer way of doing this so I can compare later, if such a thing 
+        // is possible...
+
+        // at this point I need to test the difference between filling an array and then filling a buffer vs what I 
+        // have now which is immediately filling the buffer used by the buffer for filling....
+
+        let buffer = new ArrayBuffer(VertexBuffer.temporaryArrayBufferRepeats*datumByteSize);
+        let view = new DataView(buffer);
+        let views = [view];
+        let iterators = layoutAtom.arguments.map(el => dataLayout.createInputIterator(el, data));
+
+        let allDone = false;
+        offset = 0;
+
+        while(!allDone){
+            let iteration = iterators.map(el => el.next());
+            let values = iteration.map(el => el.values);
+            let numberOfNulls = values.filter(el => el == null).length;
+
+            if(numberOfNulls !== 0 && numberOfNulls !== values.length){
+                throw new Error("FAIL: VertexBuffer requires each of its inputs to have the same number of points!"); // TODO: improve error message
+            }else if(numberOfNulls !== 0 && numberOfNulls ===values.length){
+                allDone = true;
+                break;
+            }
+
+            // at this point we have data and need to update our dummy buffer....
+
+            if(offset === buffer.size){
+                buffer = new ArrayBuffer(VertexBuffer.temporaryArrayBufferRepeats*datumByteSize);
+                view = new DataView(buffer);
+                views.push(view)
+            }
+
+            layoutAtom.arguments.forEach((input, idx) => view[dataViewGetAndSet[this.#inputInfo[input].type].set](offset, values[idx], true));
+
+            offset = offset + datumByteSize;
+        }
+
+        // at this point we have may have an array of filled array views that need to be coagulated..
+
+        let finalByteSize = (views.length - 1) * VertexBuffer.temporaryArrayBufferRepeats*datumByteSize + offset;
+        let finalBuffer = new ArrayBuffer(finalByteSize);
+        let finalView = new DataView(finalBuffer);
+
+        // copy data with largest step possible...hopefully this is in 64 bit chunks for as long as possible...
+
+
+
+        let byteStepsWithGetSet = [{size: 8, get: "getUInt64", set: "setUInt64"}, {size: 4, get: "getUInt32", set: "setUInt32"}, {size: 2, get: "getUInt16", set: "setUInt16"}, {size: 1, get: "getUInt8", set: "setUInt8"}]
+
+        let cursor = 0;
+        let viewCursor = 0;
+        let lastView = views[views.length -1];
+        let largestStep = null;
+
+        for(let view of views){
+
+            viewCursor = 0;
+
+            while(viewCursor < view.byteLength && !(view === lastView && viewCursor > offset)){
+                largestStep = byteStepsWithGetSet.find(el => (view.byteLength - cursor) % el.size === 0);
+                finalView[largestStep.set](cursor, view[largestStep.get](viewCursor));
+
+                cursor = cursor + largestStep.size;
+                viewCursor = viewCursor + largestStep.size;
+            }
+        }
+
+        return {data: finalBuffer, pts: finalByteSize/datumByteSize};
+
+    }
+
+    #canDirectCopy(dataLayoutAtom, layoutAtom){
+
+        if(dataLayoutAtom.repeat.arguments.length !== layoutAtom.arguments.length){
+            return false;
+        }
+
+        for(let i = 0; i < dataLayoutAtom.repeat.arguments.length; i++){
+            if(dataLayoutAtom.repeat.arguments[i] !== layoutAtom.arguments[i]){
+                return false;
+            }
+        }
+
+        return true;
 
     }
 

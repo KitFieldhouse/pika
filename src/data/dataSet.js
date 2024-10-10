@@ -24,26 +24,6 @@ const supportedIntTypes = ["short", "byte", "unsignedByte",
 
 const supportedFloatTypes = ["float", "halfFloat"];
 
-const typeInfo = [{"short":  {bitSize: 16}}, 
-    {"byte":  {bitSize: 8}}, 
-    {"unsignedByte":  {bitSize: 8}}, 
-    {"unsignedShort":   {bitSize: 16}} , 
-    {"int":  {bitSize: 32}}, 
-    {"unsignedInt":  {bitSize: 32}}, 
-    {"float":  {bitSize: 32}}, 
-    {"halfFloat":  {bitSize: 16}}];
-
-
-const dataViewGetAndSet = [{"short":  {get: 'getInt16',set: 'setInt16'}}, 
-    {"byte":  {get: 'getInt8',set: 'setInt8'}}, 
-    {"unsignedByte":  {get: 'getUint8',set: 'setUint8'}}, 
-    {"unsignedShort":   {get: 'getUint16',set: 'setUint16'}} , 
-    {"int":  {get: 'getInt32',set: 'setInt32'}}, 
-    {"unsignedInt":  {get: 'getUint32',set: 'setUint32'}}, 
-    {"float":  {get: 'getFloat32',set: 'setFloat32'}}, 
-    {"halfFloat":  {get: 'getFloat16',set: 'setFloat16'}}];
-
-
 
 class DataSet {
 
@@ -153,15 +133,17 @@ class DataSet {
 
     #addVertexBuffer(vbInputs, vbAtoms, opts){
 
-        if(this.#inputIsAlreadyUsed(Object.keys(vbInputs))){
+        let vertexInputs = Object.keys(vbInputs);
+
+        if(this.#inputIsAlreadyUsed(vertexInputs)){
             throw new Error("FAIL: Layout descriptor must include an input only once!");
         }
 
-        if(!this.#isAValidInput(Object.keys(vbInputs))){
+        if(!this.#isAValidInput(vertexInputs)){
             throw new Error("FAIL: Unknown input used in layout descriptor.");
         }
 
-        this.#usedInputs = [...this.#usedInputs, ...Object.keys(vbInputs)];
+        this.#usedInputs = [...this.#usedInputs, ...vertexInputs];
 
         this.#dataStores.push(new VertexBuffer(vbAtoms, this.#inputs, this.#gl, opts));
         
@@ -192,7 +174,7 @@ class DataSet {
 
         let layout = this.#processLayoutInput(layoutDesc, opts);
 
-        
+        let effects = this.#dataStores.map(el => el.requestAppend(dataSource, layout, data, opts));
         
 
     }
