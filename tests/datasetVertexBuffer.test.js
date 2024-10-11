@@ -213,20 +213,3 @@ test("Test layout syntax checking of gl.createDataSet", () =>{
 
 
 });
-
-// test(`Test that layout validates each sub buffer haas the same defined repeat size`, () => {
-
-//     expect(() => {
-//       let gl = new GL(fakeCanvas);
-
-//       gl.createDataSet({inputs: [
-//          {name: 'x', size: 1, type: 'float'},
-//          {name: 'y', size: 1, type: 'float'},
-//          {name: 'a', size: 1, type: 'float'},
-//          {name: 'b', size: 1, type: 'float'}
-//       ],
-//       layout: [{name: "buffer1", desc: [GL.repeat({size: 1000}, 'x'), GL.repeat({size: 1234},'a')]},
-//               {name: "buffer2",desc: [GL.repeat({size: 1234}, 'y'), GL.repeat({size: 1000},'b')]}]});
-//       }).toThrow("Pika expects all sub buffer descriptors to have been given the same repeat size")
-// });
-
