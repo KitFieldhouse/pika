@@ -175,7 +175,7 @@ class VertexBuffer{
         }
 
 
-        return {pointsAdded: translatedDataSets[0].pts, doAppend: () => this.requestAppend(dataSource, translatedDataSets ,opts ?? null)}; // left off here
+        return {pointsAdded: translatedDataSets[0].pts, doAppend: () => this.requestAppend(dataSource, translatedDataSets.map(el => el.data), opts ?? null)}; // left off here
 
     }
 
