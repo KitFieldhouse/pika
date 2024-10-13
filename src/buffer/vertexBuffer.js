@@ -50,13 +50,13 @@ class VertexBuffer{
     static temporaryArrayBufferRepeats = 1000; // for sizing array buffers that will be filled with unwrapped data
 
 
-    static constructBufferFromAtoms(layoutAtoms, inputInfo, gl, opts){
+    static constructBufferFromAtoms(layoutAtoms, inputInfo, gl, initialData = null, opts = {}){
         let buffer = new VertexBuffer(layoutAtoms, inputInfo, gl, opts);
 
         return [buffer, {appendData: buffer.#appendData, prependData: buffer.#prependData} , buffer.#subBuffersWithUpdaters.map(el => el.view)];
     }
 
-    constructor(layoutAtoms, inputInfo, gl, opts){
+    constructor(layoutAtoms, inputInfo, gl, initialData = null, opts = {}){
         this.#gl = gl;
         this.#layoutAtoms = layoutAtoms;
         this.#inputInfo = inputInfo;

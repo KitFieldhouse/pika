@@ -16,7 +16,7 @@ class WebglHandler {
     }
 
     createDataSet = (dataSetDescriptor) => {
-        return new DataSet(dataSetDescriptor.inputs, dataSetDescriptor.layout, this);
+        return new DataSet(dataSetDescriptor.inputs, dataSetDescriptor.layout, this, dataSetDescriptor.initialData);
     }
 
      // ---------------------------------------------------------------------------------

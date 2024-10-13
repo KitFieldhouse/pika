@@ -40,7 +40,7 @@ test("Test VertexBuffer constructor args with a single atom and a single buffer"
     layout: [GL.VertexBuffer([GL.repeat('y', 'timestamps')])]});
 
     expect(mockConstructor).toHaveBeenCalledTimes(1);
-    expect(mockConstructor).toHaveBeenLastCalledWith([GL.repeat('y', 'timestamps')], inputs , gl, undefined);
+    expect(mockConstructor).toHaveBeenLastCalledWith([GL.repeat('y', 'timestamps')], inputs , gl, null, undefined);
 });
 
 
@@ -56,7 +56,7 @@ test("Test VertexBuffer constructor args with two atoms and a single buffer", ()
   layout: [GL.VertexBuffer([GL.repeat('y'), GL.endRepeat('timestamps')])]});
 
   expect(mockConstructor).toHaveBeenCalledTimes(1);
-  expect(mockConstructor).toHaveBeenLastCalledWith([GL.repeat('y'), GL.endRepeat('timestamps')], inputs, gl, undefined);
+  expect(mockConstructor).toHaveBeenLastCalledWith([GL.repeat('y'), GL.endRepeat('timestamps')], inputs, gl, null, undefined);
 });
 
 
@@ -73,8 +73,8 @@ test("Test VertexBuffer constructor args with two atoms and two buffers", () => 
            GL.VertexBuffer([GL.repeat('timestamps')])]});
 
   expect(mockConstructor).toHaveBeenCalledTimes(2);
-  expect(mockConstructor).toHaveBeenNthCalledWith(1, [GL.repeat('y')], inputs , gl, undefined);
-  expect(mockConstructor).toHaveBeenNthCalledWith(2, [GL.repeat('timestamps')], inputs, gl, undefined);
+  expect(mockConstructor).toHaveBeenNthCalledWith(1, [GL.repeat('y')], inputs , gl, null, undefined);
+  expect(mockConstructor).toHaveBeenNthCalledWith(2, [GL.repeat('timestamps')], inputs, gl, null, undefined);
 });
 
 
@@ -93,8 +93,8 @@ test("Test VertexBuffer constructor args with 4 atoms and two buffers, two atoms
            GL.VertexBuffer([GL.repeat('y'), GL.repeat('b')])]});
 
   expect(mockConstructor).toHaveBeenCalledTimes(2);
-  expect(mockConstructor).toHaveBeenNthCalledWith(1, [GL.repeat('x'), GL.repeat('a')], inputs, gl, undefined);
-  expect(mockConstructor).toHaveBeenNthCalledWith(2, [GL.repeat('y'), GL.repeat('b')], inputs, gl, undefined);
+  expect(mockConstructor).toHaveBeenNthCalledWith(1, [GL.repeat('x'), GL.repeat('a')], inputs, gl, null, undefined);
+  expect(mockConstructor).toHaveBeenNthCalledWith(2, [GL.repeat('y'), GL.repeat('b')], inputs, gl, null, undefined);
 });
 
 test("Test VertexBuffer constructor args with 4 atoms and two buffers, two atoms per buffer with named buffers", () => {
@@ -111,8 +111,8 @@ test("Test VertexBuffer constructor args with 4 atoms and two buffers, two atoms
   layout: [GL.VertexBuffer([GL.repeat('x'), GL.repeat('a')], {name: "buffer1"}), GL.VertexBuffer([GL.repeat('y'), GL.repeat('b')], {name: "buffer2"})]});
 
   expect(mockConstructor).toHaveBeenCalledTimes(2);
-  expect(mockConstructor).toHaveBeenNthCalledWith(1, [GL.repeat('x'), GL.repeat('a')] , inputs, gl, {name: "buffer1"});
-  expect(mockConstructor).toHaveBeenNthCalledWith(2, [GL.repeat('y'), GL.repeat('b')], inputs,  gl, {name: "buffer2"});
+  expect(mockConstructor).toHaveBeenNthCalledWith(1, [GL.repeat('x'), GL.repeat('a')] , inputs, gl, null, {name: "buffer1"});
+  expect(mockConstructor).toHaveBeenNthCalledWith(2, [GL.repeat('y'), GL.repeat('b')], inputs,  gl, null, {name: "buffer2"});
 });
 
 
@@ -131,7 +131,7 @@ test("Test VertexBuffer constructor args with 4 atoms and two buffers, two atoms
            GL.VertexBuffer([GL.repeat({size: 1234}, 'y'), GL.repeat({size: 1234},'b')])]});
 
   expect(mockConstructor).toHaveBeenCalledTimes(2);
-  expect(mockConstructor).toHaveBeenNthCalledWith(1, [GL.repeat({size: 1000}, 'x'), GL.repeat({size: 1000},'a')], inputs,  gl, undefined);
-  expect(mockConstructor).toHaveBeenNthCalledWith(2, [GL.repeat({size: 1234}, 'y'), GL.repeat({size: 1234},'b')], inputs, gl, undefined);
+  expect(mockConstructor).toHaveBeenNthCalledWith(1, [GL.repeat({size: 1000}, 'x'), GL.repeat({size: 1000},'a')], inputs,  gl, null, undefined);
+  expect(mockConstructor).toHaveBeenNthCalledWith(2, [GL.repeat({size: 1234}, 'y'), GL.repeat({size: 1234},'b')], inputs, gl, null, undefined);
 });
 

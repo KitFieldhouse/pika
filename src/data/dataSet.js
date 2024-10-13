@@ -36,7 +36,7 @@ class DataSet {
 
     #cachedLayouts = {};
 
-    constructor(inputs, layout, gl){
+    constructor(inputs, layout, gl, initialData = null){
         this.#gl = gl;
 
         inputs.forEach(el => {
@@ -75,12 +75,29 @@ class DataSet {
             throw new Error("FAIL: Not all inputs were placed in layout.");
         }
 
-        // if this check has passed, we can move on and actually perform the allocation.
+        // if this check has passed, we move on to check if we have initial data, if so, we need to 
+        // process the layout of this data before allocating.
+
+
+        if(initialData){
+
+            if(!initialData.data || !initialData.layout){
+                throw new Error("FAIL: initialData must be an object with 'data' and 'layout' properties.");
+            }
+
+            let [initialDataDataSource, initialDataLayout] = this.#determineDataSource(initialData.data, initialData.layout);
+            initialDataLayout = this.#processLayoutInput(initialData.layout, initialData.opts);
+            initialData.layout = initialDataLayout;
+            initialData.source = initialDataDataSource;
+
+        }
+
+        // now we can finally allocate
 
         for(let el of layout){
             switch(el.type){
                 case "VertexBuffer":
-                    this.#addVertexBuffer(el.inputs, el.atoms, el.opts);
+                    this.#addVertexBuffer(el.inputs, el.atoms, initialData , el.opts);
                     break;
                 default:
                     break;
@@ -147,8 +164,8 @@ class DataSet {
         return true;
     }
 
-    #addVertexBuffer(vbInputs, vbAtoms, opts){
-        this.#dataStores.push(new VertexBuffer(vbAtoms, this.#inputs, this.#gl, opts));
+    #addVertexBuffer(vbInputs, vbAtoms, initialData, opts){
+        this.#dataStores.push(new VertexBuffer(vbAtoms, this.#inputs, this.#gl, initialData ,opts));
     }
 
     // need to figure out generalizations of append/prepend for multi dim data.
