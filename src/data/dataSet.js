@@ -50,12 +50,34 @@ class DataSet {
             this.#inputs[inputCopy.name] = inputCopy; // having the name attribute be in this object is a little redundant....
         });
 
+        // first check that all inputs are used and are used uniquely before moving on to the actual allocation step.
 
         for(let el of layout){
             if(!(typeof el === "object") || !(el[isDataStoreDescriptor])){
                 throw new Error("FAIL: Data set store descriptor must be made up of data descriptor objects such as VertexBuffer");
             }
 
+            let vertexInputs = Object.keys(el.inputs);
+
+            if(this.#inputIsAlreadyUsed(vertexInputs)){
+                throw new Error("FAIL: Layout descriptor must include an input only once!");
+            }
+    
+            if(!this.#isAValidInput(vertexInputs)){
+                throw new Error("FAIL: Unknown input used in layout descriptor.");
+            }
+    
+
+            this.#usedInputs.push(...vertexInputs);
+        }
+
+        if(this.#usedInputs.length !== Object.keys(this.#inputs).length){
+            throw new Error("FAIL: Not all inputs were placed in layout.");
+        }
+
+        // if this check has passed, we can move on and actually perform the allocation.
+
+        for(let el of layout){
             switch(el.type){
                 case "VertexBuffer":
                     this.#addVertexBuffer(el.inputs, el.atoms, el.opts);
@@ -64,12 +86,6 @@ class DataSet {
                     break;
             }
         }
-
-        if(this.#usedInputs.length !== Object.keys(this.#inputs).length){
-            throw new Error("FAIL: Not all inputs were placed in layout.");
-        }
-
-        //this.#buildGLCallsFromLayout(layout ?? this.#constructDefaultLayout());
     }
 
     // checks that we have all the info needed to build the correct opengl calls
@@ -132,21 +148,7 @@ class DataSet {
     }
 
     #addVertexBuffer(vbInputs, vbAtoms, opts){
-
-        let vertexInputs = Object.keys(vbInputs);
-
-        if(this.#inputIsAlreadyUsed(vertexInputs)){
-            throw new Error("FAIL: Layout descriptor must include an input only once!");
-        }
-
-        if(!this.#isAValidInput(vertexInputs)){
-            throw new Error("FAIL: Unknown input used in layout descriptor.");
-        }
-
-        this.#usedInputs = [...this.#usedInputs, ...vertexInputs];
-
         this.#dataStores.push(new VertexBuffer(vbAtoms, this.#inputs, this.#gl, opts));
-        
     }
 
     // need to figure out generalizations of append/prepend for multi dim data.
