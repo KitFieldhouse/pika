@@ -28,7 +28,7 @@ beforeEach(() => {
 });
 
 
-test("Test layout with a single atom and a single buffer", () => {
+test("Test VertexBuffer constructor args with a single atom and a single buffer", () => {
     let gl = new GL(fakeCanvas);
 
     let inputs = {
@@ -44,7 +44,7 @@ test("Test layout with a single atom and a single buffer", () => {
 });
 
 
-test("Test layout with two atoms and a single buffer", () => {
+test("Test VertexBuffer constructor args with two atoms and a single buffer", () => {
   let gl = new GL(fakeCanvas);
 
   let inputs = {
@@ -60,7 +60,7 @@ test("Test layout with two atoms and a single buffer", () => {
 });
 
 
-test("Test layout with two atoms and two buffers", () => {
+test("Test VertexBuffer constructor args with two atoms and two buffers", () => {
   let gl = new GL(fakeCanvas);
 
   let inputs = {
@@ -78,7 +78,7 @@ test("Test layout with two atoms and two buffers", () => {
 });
 
 
-test("Test layout with 4 atoms and two buffers, two atoms per buffer", () => {
+test("Test VertexBuffer constructor args with 4 atoms and two buffers, two atoms per buffer", () => {
   let gl = new GL(fakeCanvas);
 
   let inputs = {
@@ -97,7 +97,7 @@ test("Test layout with 4 atoms and two buffers, two atoms per buffer", () => {
   expect(mockConstructor).toHaveBeenNthCalledWith(2, [GL.repeat('y'), GL.repeat('b')], inputs, gl, undefined);
 });
 
-test("Test layout with 4 atoms and two buffers, two atoms per buffer with named buffers", () => {
+test("Test VertexBuffer constructor args with 4 atoms and two buffers, two atoms per buffer with named buffers", () => {
   let gl = new GL(fakeCanvas);
 
   let inputs = {
@@ -116,7 +116,7 @@ test("Test layout with 4 atoms and two buffers, two atoms per buffer with named 
 });
 
 
-test("Test layout with 4 atoms and two buffers, two atoms per buffer with named buffers and a manually set buffer size", () => {
+test("Test VertexBuffer constructor args with 4 atoms and two buffers, two atoms per buffer with named buffers and a manually set buffer size", () => {
   let gl = new GL(fakeCanvas);
 
   let inputs = {
