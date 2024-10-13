@@ -47,7 +47,7 @@ test("Test input syntax checking of gl.createDataSet", () =>{
 
 
 
-test("Test layout syntax checking of gl.createDataSet", () =>{
+test("Test dataSet descriptor syntax checking of gl.createDataSet", () =>{
 
   let gl = new GL(fakeCanvas);
 
