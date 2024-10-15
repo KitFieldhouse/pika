@@ -269,6 +269,10 @@ class DataSet {
         return true
     }
 
+    get cachedLayouts(){
+        return Object.assign({}, this.#cachedLayouts);
+    }
+
 }
 
 export default DataSet;
