@@ -1,6 +1,28 @@
 import GL from '../src/webglHandler/webglHandler.js'
 import VertexBuffer from '../src/buffer/vertexBuffer.js';
 import fakeCanvas from './fakeCanvas.js';
+import Layout from '../src/data/layout.js';
+
+// mock the constructor of VertexBuffer so that we don't actually end up creating any VertexBuffers....
+
+var mockConstructor;
+
+jest.mock('../src/buffer/vertexBuffer.js', () => {
+
+  mockConstructor =  jest.fn().mockImplementation(() => {
+    return {};
+  });
+
+
+  return mockConstructor
+});
+
+
+beforeEach(() => {
+  // Clear all instances and calls to constructor and all methods:
+  mockConstructor.mockClear();
+});
+
 
 // lets check that we get proper error/syntax handling of the createDataSet function
 
@@ -111,8 +133,6 @@ test("Test that initialData is checked to make sure it provides both initial dat
 });
 
 
-
-
 test("Test that provided initialData inputs are checked that they are inputs of the dataSet", () =>{
   let gl = new GL(fakeCanvas);
 
@@ -124,5 +144,41 @@ test("Test that provided initialData inputs are checked that they are inputs of 
     initialData: {data: [1,2,3,4,5], layout: [GL.repeat("f")]}
   }) 
   ).toThrow("was not found for this layout");
+
+});
+
+
+
+test("Test that layouts are constructed and cached for dataSets", () =>{
+  let gl = new GL(fakeCanvas);
+
+  let inputsAsObject = {
+     x: {name: 'x', size: 1, type: 'float'},
+     y: {name: 'y', size: 1, type: 'float'}
+  }
+
+  let dataset = gl.createDataSet({inputs: [
+      {name: 'x', size: 1, type: 'float'},
+      {name: 'y', size: 1, type: 'float'}
+    ],
+    layout: [GL.VertexBuffer([GL.repeat('x','y')])],
+    initialData: {data: [1,2,3,4,5,6], layout: [GL.repeat("x", "y")]}
+  }) 
+
+
+  expect(Object.keys(dataset.cachedLayouts).length).toBe(1);
+  expect(!!dataset.cachedLayouts[JSON.stringify([GL.repeat("x", "y")])]).toBe(true);
+  expect(dataset.cachedLayouts[JSON.stringify([GL.repeat("x", "y")])]).toEqual((new Layout([GL.repeat('x', 'y')], inputsAsObject)));
+
+
+  let newDataSet = gl.createDataSet({inputs: [
+      {name: 'x', size: 1, type: 'float'},
+      {name: 'y', size: 1, type: 'float'}
+    ],
+    layout: [GL.VertexBuffer([GL.repeat('x','y')])],
+    initialData: {data: [1,2,3,4,5,6], layout: [GL.repeat("x", "y")]}
+  }) 
+
+  expect(Object.keys(dataset.cachedLayouts).length).toBe(1);
 
 });
