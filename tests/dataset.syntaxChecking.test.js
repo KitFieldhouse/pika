@@ -80,3 +80,49 @@ test("Test dataSet descriptor syntax checking of gl.createDataSet", () =>{
 
 
 });
+
+test("Test that initialData is checked to make sure it provides both initial data and a layout", () =>{
+  let gl = new GL(fakeCanvas);
+
+  expect(() => gl.createDataSet({inputs: [
+      {name: 'x', size: 1, type: 'float'},
+      {name: 'y', size: 1, type: 'float'}
+    ],
+    layout: [GL.VertexBuffer([GL.repeat('x','y')])],
+    initialData: {data: [1,2,3,4,5]}
+  }) 
+  ).toThrow("FAIL: initialData must be an object with 'data' and 'layout' properties.");
+
+});
+
+
+test("Test that initialData is checked to make sure it provides both initial data and a layout", () =>{
+  let gl = new GL(fakeCanvas);
+
+  expect(() => gl.createDataSet({inputs: [
+      {name: 'x', size: 1, type: 'float'},
+      {name: 'y', size: 1, type: 'float'}
+    ],
+    layout: [GL.VertexBuffer([GL.repeat('x','y')])],
+    initialData: {layout: [GL.repeat("x")]}
+  }) 
+  ).toThrow("FAIL: initialData must be an object with 'data' and 'layout' properties.");
+
+});
+
+
+
+
+test("Test that provided initialData inputs are checked that they are inputs of the dataSet", () =>{
+  let gl = new GL(fakeCanvas);
+
+  expect(() => gl.createDataSet({inputs: [
+      {name: 'x', size: 1, type: 'float'},
+      {name: 'y', size: 1, type: 'float'}
+    ],
+    layout: [GL.VertexBuffer([GL.repeat('x','y')])],
+    initialData: {data: [1,2,3,4,5], layout: [GL.repeat("f")]}
+  }) 
+  ).toThrow("was not found for this layout");
+
+});
