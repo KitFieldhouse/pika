@@ -1,21 +1,21 @@
 import GL from '../src/webglHandler/webglHandler.js';
 import Layout from '../src/data/layout.js';
 
-const inputs = [ {name: 'x', size: 1, type: 'float'},
-    {name: 'y', size: 1, type: 'float'},
-    {name: 'z', size: 1, type: 'float'},
-    {name: 'b', size: 1, type: 'float'}];
+const inputs = {x: {name: 'x', size: 1, type: 'float'},
+    y: {name: 'y', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'},
+    b: {name: 'b', size: 1, type: 'float'}};
 
 
-const mixed = [ {name: 'f', size: 1, type: 'float'},
-        {name: 'i', size: 1, type: 'byte'}];
+const mixed = {f: {name: 'f', size: 1, type: 'float'},
+        i: {name: 'i', size: 1, type: 'byte'}};
 
 
 
-const inputWithVectors = [ {name: 'v', size: 3, type: 'float'},
-            {name: 'w', size: 2, type: 'float'},
-            {name: 'x', size: 1, type: 'float'},
-            {name: 'y', size: 1, type: 'float'}];
+const inputWithVectors = {v: {name: 'v', size: 3, type: 'float'},
+            w: {name: 'w', size: 2, type: 'float'},
+            x: {name: 'x', size: 1, type: 'float'},
+            y: {name: 'y', size: 1, type: 'float'}};
 
 
 // -------------------------------------------------------------------

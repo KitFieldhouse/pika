@@ -4,6 +4,7 @@ import {typeInfo, dataViewGetAndSet} from "../private/types.js"
 
 
 // TODO: repeats and numberOfPts are kinda doing double duty...
+// TODO: Left off oct 13th 0215 -- layout input is an array whereas dataSet input is an obj, fugggg
 
 const rootGetter = (data) => data; 
 const root = {getter: rootGetter, isRepeat: false};
@@ -402,7 +403,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
     // {name: 'a', size: 1, type: 'float'},
     // {name: 'b', size: 1, type: 'float'} <------ inputs have this form
     #lookupInput(name){
-        let inputObject = this.#inputs.find(el => el.name === name);
+        let inputObject = this.#inputs[name];
 
         if(!inputObject){
             throw new Error(`FAIL: Input "${name}" was not found for this layout`);

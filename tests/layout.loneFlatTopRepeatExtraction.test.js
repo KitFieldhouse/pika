@@ -2,10 +2,10 @@ import GL from '../src/webglHandler/webglHandler.js';
 import Layout from '../src/data/layout.js';
 
 
-const inputs = [ {name: 'x', size: 1, type: 'float'},
-    {name: 'y', size: 1, type: 'float'},
-    {name: 'z', size: 1, type: 'float'},
-    {name: 'b', size: 1, type: 'float'}];
+const inputs = {x: {name: 'x', size: 1, type: 'float'},
+    y: {name: 'y', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'},
+    b: {name: 'b', size: 1, type: 'float'}};
 
 
 let layout = new Layout([[GL.repeat("x", "y")], [GL.repeat("z", "b")]] ,inputs)
