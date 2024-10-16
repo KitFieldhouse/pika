@@ -259,10 +259,22 @@ class DataSet {
     }
 
 
-    sameInputs(input1, input2){
-        for(let key of inputKeys){
-            if(input1[key] !== input2[key]){
+    sameInputs(inputs1, inputs2){
+
+        if(Object.keys(inputs1).length !== Object.keys(inputs2).length){
+            return false;
+        }
+
+        for(let input in inputs1){
+
+            if(!inputs2[input]){
                 return false;
+            }
+
+            for(let key of inputKeys){
+                if(inputs1[input][key] !== inputs2[input][key]){
+                    return false;
+                }
             }
         }
 

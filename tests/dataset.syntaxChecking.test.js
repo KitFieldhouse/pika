@@ -6,11 +6,15 @@ import Layout from '../src/data/layout.js';
 // mock the constructor of VertexBuffer so that we don't actually end up creating any VertexBuffers....
 
 var mockConstructor;
+var mockDoAppend = jest.fn(() => null);
+var mockSizeAppend = jest.fn(x => {
+  return {pointsAdded: 0, doAppend: mockDoAppend}
+})
 
 jest.mock('../src/buffer/vertexBuffer.js', () => {
 
   mockConstructor =  jest.fn().mockImplementation(() => {
-    return {};
+    return {sizeAppend: mockSizeAppend};
   });
 
 
@@ -21,6 +25,8 @@ jest.mock('../src/buffer/vertexBuffer.js', () => {
 beforeEach(() => {
   // Clear all instances and calls to constructor and all methods:
   mockConstructor.mockClear();
+  mockDoAppend.mockClear();
+  mockSizeAppend.mockClear();
 });
 
 
@@ -147,6 +153,47 @@ test("Test that provided initialData inputs are checked that they are inputs of 
 
 });
 
+test("Test that predefined layout is checked to see if its inputs are in dataSet", () =>{
+  let gl = new GL(fakeCanvas);
+
+  let layoutInputs =  {x: {name: 'x', size: 1, type: 'float'},
+                      y: {name: 'y', size: 1, type: 'float'},
+                      f: {name: 'f', size: 2, type: 'float'}}
+
+  let predefinedLayout = new Layout([GL.repeat("f")],layoutInputs);
+
+  expect(() => gl.createDataSet({inputs: [
+      {name: 'x', size: 1, type: 'float'},
+      {name: 'y', size: 1, type: 'float'}
+    ],
+    layout: [GL.VertexBuffer([GL.repeat('x','y')])],
+    initialData: {data: [1,2,3,4,5], layout: predefinedLayout}
+  }) 
+  ).toThrow("FAIL: layout object does not have the same input definitions as this dataset");
+
+});
+
+test("Test that predefined layout is checked to see if its inputs definitions are the same", () =>{
+  let gl = new GL(fakeCanvas);
+
+  let layoutInputs =  {x: {name: 'x', size: 1, type: 'float'},
+                      y: {name: 'y', size: 2, type: 'float'}}
+
+  let predefinedLayout = new Layout([GL.repeat("x")],layoutInputs);
+
+  expect(() => gl.createDataSet({inputs: [
+      {name: 'x', size: 1, type: 'float'},
+      {name: 'y', size: 1, type: 'float'}
+    ],
+    layout: [GL.VertexBuffer([GL.repeat('x','y')])],
+    initialData: {data: [1,2,3,4,5], layout: predefinedLayout}
+  }) 
+  ).toThrow("FAIL: layout object does not have the same input definitions as this dataset");
+
+});
+
+
+
 
 
 test("Test that layouts are constructed and cached for dataSets", () =>{
@@ -168,17 +215,20 @@ test("Test that layouts are constructed and cached for dataSets", () =>{
 
   expect(Object.keys(dataset.cachedLayouts).length).toBe(1);
   expect(!!dataset.cachedLayouts[JSON.stringify([GL.repeat("x", "y")])]).toBe(true);
-  expect(dataset.cachedLayouts[JSON.stringify([GL.repeat("x", "y")])]).toEqual((new Layout([GL.repeat('x', 'y')], inputsAsObject)));
 
+  let layoutToTestAgainst = new Layout([GL.repeat('x')], inputsAsObject);
 
-  let newDataSet = gl.createDataSet({inputs: [
-      {name: 'x', size: 1, type: 'float'},
-      {name: 'y', size: 1, type: 'float'}
-    ],
-    layout: [GL.VertexBuffer([GL.repeat('x','y')])],
-    initialData: {data: [1,2,3,4,5,6], layout: [GL.repeat("x", "y")]}
-  }) 
+  console.log(JSON.stringify(layoutToTestAgainst));
+
+  expect(dataset.cachedLayouts[JSON.stringify([GL.repeat("x", "y")])]).toEqual((new Layout([GL.repeat('x')], inputsAsObject)));
+
+  let cachedLayout = dataset.cachedLayouts[JSON.stringify([GL.repeat("x", "y")])];
+
+  dataset.appendData([1,2,3,4,5,6], [GL.repeat("x", "y")])
 
   expect(Object.keys(dataset.cachedLayouts).length).toBe(1);
+  expect(mockSizeAppend.mock.calls).toHaveLength(1);
+  expect(mockDoAppend.mock.calls).toHaveLength(1);
 
+  //expect(mockSizeAppend).toHaveBeenCalledWith("clientArray", {blap: 123}, [1,2,3,4,5,6], null);
 });
