@@ -181,10 +181,10 @@ class DataSet {
                 throw new Error("FAIL: appendData was called with an invalid argument signature");
             }
         }else{
-            if(typeof opts !== 'object'){
+            if(typeof opts !== 'object' && opts != null){
                 throw new Error("FAIL: appendData was called with an invalid argument signature");
             }else{
-                opts = opts || {};
+                opts = opts || null;
             }
         }
 
