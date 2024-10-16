@@ -9,6 +9,8 @@ import {typeInfo, dataViewGetAndSet} from "../private/types.js"
 const rootGetter = (data) => data; 
 const root = {getter: rootGetter, isRepeat: false};
 
+const inputKeys = ["name", "size", "type", "normalized"]
+
 class InputGetIterator{
 
     #rootNode;
@@ -69,7 +71,6 @@ class InputGetIterator{
 class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
     #dims = [];
-    #params = {};
     #inputs;
 
     #getters = {}; // {x: {map: <MAP>, tree: <TREE>}} would be for a single input (x)
@@ -521,12 +522,34 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         }
     }
 
-    get dim(){
-        return this.#dims.length;
+    isSameLayout(otherLayout){
+        console.log(otherLayout.#inputs);
     }
 
-    get paramNames(){
-        return this.#params.keys();
+    hasSameInputDefinitions(otherInputs){
+
+        if(Object.keys(this.#inputs).length !== Object.keys(otherInputs).length){
+            return false;
+        }
+
+        for(let input in this.#inputs){
+
+            if(!otherInputs[input]){
+                return false;
+            }
+
+            for(let key of inputKeys){
+                if(this.#inputs[input][key] !== otherInputs[input][key]){
+                    return false;
+                }
+            }
+        }
+
+        return true
+    }
+
+    get dim(){
+        return this.#dims.length;
     }
 
     getDimOfInput(input){
