@@ -53,7 +53,7 @@ class WebglHandler {
         Object.assign(optsWithDefaults, opts);
 
 
-        return {[isLayoutObj]: true, isFlat: isFlat, arguments: names, repeatType: 'start', 'opts': optsWithDefaults};
+        return Object.freeze({[isLayoutObj]: true, isFlat: isFlat, arguments: names, repeatType: 'start', 'opts': optsWithDefaults});
     }
 
     static endRepeat( opts , ...names){
@@ -85,7 +85,7 @@ class WebglHandler {
         Object.assign(optsWithDefaults, defaultRepeatOpts);
         Object.assign(optsWithDefaults, opts);
 
-        return {[isLayoutObj]: true, isFlat: isFlat, arguments: names, repeatType: 'end', 'opts': optsWithDefaults};
+        return Object.freeze({[isLayoutObj]: true, isFlat: isFlat, arguments: names, repeatType: 'end', 'opts': optsWithDefaults});
     }
 
     static centerRepeat( opts , ...names){
@@ -118,7 +118,7 @@ class WebglHandler {
         Object.assign(optsWithDefaults, opts);
 
 
-        return {[isLayoutObj]: true, isFlat: isFlat, arguments: names, repeatType: 'center', 'opts': optsWithDefaults};
+        return Object.freeze({[isLayoutObj]: true, isFlat: isFlat, arguments: names, repeatType: 'center', 'opts': optsWithDefaults});
     }
     
     static VertexBuffer(layout, opts){
