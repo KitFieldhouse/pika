@@ -17,7 +17,6 @@ import Layout from "./layout.js";
 // api bricks meaning that we are in a half-functional state. 
 
 const defaultInputs = {name: null , size: null, type: null, normalized: false}
-const inputKeys = ["name", "size", "type", "normalized"]
 
 const supportedIntTypes = ["short", "byte", "unsignedByte", 
     "unsignedShort", "int", "unsignedInt"];
@@ -231,7 +230,7 @@ class DataSet {
         if(layoutDesc instanceof Layout){
             layout = layoutDesc;
 
-            if(!this.sameInputs(layout.inputs, this.#inputs)){
+            if(!layout.hasSameInputDefinitions(this.#inputs)){
                 throw new Error("FAIL: layout object does not have the same input definitions as this dataset.");
             }
         }else if(layoutDesc instanceof Array){  // check cache to skip the parsing and object construction time costs of building a new layout.. if cache miss create a new one and cache
@@ -258,28 +257,6 @@ class DataSet {
         return layout
     }
 
-
-    sameInputs(inputs1, inputs2){
-
-        if(Object.keys(inputs1).length !== Object.keys(inputs2).length){
-            return false;
-        }
-
-        for(let input in inputs1){
-
-            if(!inputs2[input]){
-                return false;
-            }
-
-            for(let key of inputKeys){
-                if(inputs1[input][key] !== inputs2[input][key]){
-                    return false;
-                }
-            }
-        }
-
-        return true
-    }
 
     get cachedLayouts(){
         return Object.assign({}, this.#cachedLayouts);
