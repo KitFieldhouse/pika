@@ -216,13 +216,11 @@ test("Test that layouts are constructed and cached for dataSets", () =>{
   expect(Object.keys(dataset.cachedLayouts).length).toBe(1);
   expect(!!dataset.cachedLayouts[JSON.stringify([GL.repeat("x", "y")])]).toBe(true);
 
-  let layoutToTestAgainst = new Layout([GL.repeat('x')], inputsAsObject);
-
-  console.log(JSON.stringify(layoutToTestAgainst));
-
-  expect(dataset.cachedLayouts[JSON.stringify([GL.repeat("x", "y")])]).toEqual((new Layout([GL.repeat('x')], inputsAsObject)));
-
+  let layoutToTestAgainst = new Layout([GL.repeat('x', 'y')], inputsAsObject);
   let cachedLayout = dataset.cachedLayouts[JSON.stringify([GL.repeat("x", "y")])];
+
+  expect(layoutToTestAgainst.isSameLayout(cachedLayout)).toBe(true);
+
 
   dataset.appendData([1,2,3,4,5,6], [GL.repeat("x", "y")])
 
@@ -230,5 +228,16 @@ test("Test that layouts are constructed and cached for dataSets", () =>{
   expect(mockSizeAppend.mock.calls).toHaveLength(1);
   expect(mockDoAppend.mock.calls).toHaveLength(1);
 
-  //expect(mockSizeAppend).toHaveBeenCalledWith("clientArray", {blap: 123}, [1,2,3,4,5,6], null);
+  expect(layoutToTestAgainst.isSameLayout(mockSizeAppend.mock.lastCall[1])).toBe(true);
+
+
+  dataset.appendData([1,2,3,4,5,6], [GL.repeat("x")]);
+  let newLayoutToTestAgainst = new Layout([GL.repeat('x')], inputsAsObject);
+
+  expect(Object.keys(dataset.cachedLayouts).length).toBe(2);
+  expect(mockSizeAppend.mock.calls).toHaveLength(2);
+  expect(mockDoAppend.mock.calls).toHaveLength(2);
+  
+  expect(layoutToTestAgainst.isSameLayout(mockSizeAppend.mock.lastCall[1])).toBe(false);
+  expect(newLayoutToTestAgainst.isSameLayout(mockSizeAppend.mock.lastCall[1])).toBe(true);
 });
