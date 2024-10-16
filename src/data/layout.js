@@ -90,6 +90,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
     #loneTopFlatRepeats = []; 
 
     #opts;
+    #layoutArray;
 
     constructor(layoutArr, inputs, opts = {}){
 
@@ -97,6 +98,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
             throw new Error("FAIL: Layout descriptor must be an array");
         }
 
+        this.#layoutArray = layoutArr;
         this.#opts = opts;
 
         this.#inputs = inputs;
@@ -523,7 +525,39 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
     }
 
     isSameLayout(otherLayout){
-        console.log(otherLayout.#inputs);
+        if(!this.hasSameInputDefinitions(otherLayout.#inputs)){
+            return false
+        }
+
+        if(Object.keys(this.#opts).length !== Object.keys(otherLayout.#opts).length){
+            return false;
+        }
+
+        for(let opt in this.#opts){
+
+            if(this.#opts[opt] instanceof Array){
+                if(!otherLayout.#opts[opt] || !(otherLayout.#opts[opt] instanceof Array) ){
+                    return false;
+                }
+
+                if(!this.#opts[opt].reduce((acc, el, i) => !acc? false : el === otherLayout.#opts[opt], true)){
+                    return false
+                }
+
+                continue
+
+            }
+
+            if(this.#opts[opt] !== otherLayout.#opts[opt]){
+                return false
+            }
+        }
+
+        if(!this.compareLayoutArr(this.#layoutArray, otherLayout.#layoutArray)){
+            return false;
+        }
+
+        return true;
     }
 
     hasSameInputDefinitions(otherInputs){
@@ -546,6 +580,57 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         }
 
         return true
+    }
+
+    compareLayoutArr(arr1, arr2){
+        if(arr1.length !== arr2.length){
+            return false;
+        }
+
+        for(let i = 0 ; i < arr1.length; i++){
+            let arg1 = arr1[i];
+            let arg2 = arr2[i];
+
+            if(arg1[isLayoutObj]){
+                if(!arg2[isLayoutObj]){
+                    return false;
+                }else if(!this.compareRepeats(arg1, arg2)){
+                    return false;
+                }
+            }else if(arg1 !== arg2){ // not layout object so this can only be a string or a symbol
+                return false;
+            }
+        }
+
+        return true
+    }
+
+    compareRepeats(repeatObj1, repeatObj2){
+
+        if((repeatObj1.opts && !repeatObj2.opts) || (!repeatObj1.opts && repeatObj2.opts)){
+            return false;
+        }
+
+        if(repeatObj1.opts){
+
+            if(Object.keys(repeatObj1.opts).length !== Object.keys(repeatObj2.opts).length){
+                return false;
+            }
+
+            for(let key in repeatObj1.opts){
+                if(repeatObj1.opts[key] !== repeatObj2.opts[key]){
+                    return false;
+                }
+            }
+        }
+
+        if(!this.compareLayoutArr(repeatObj1.arguments, repeatObj2.arguments)){
+            return false;
+        }
+
+        return true
+
+
     }
 
     get dim(){
