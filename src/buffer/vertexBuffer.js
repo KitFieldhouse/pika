@@ -3,17 +3,6 @@ import {typeInfo, dataViewGetAndSet} from "../private/types.js"
 
 // all nasty type checking (array vs blob) should be done in this class
 
-
-// this.#typeInfo = [{"short":  {impl: this.#gl.gl.SHORT, bitSize: 16}}, 
-//     {"byte":  {impl: this.#gl.gl.BYTE, bitSize: 8}}, 
-//     {"unsignedByte":  {impl: this.#gl.gl.UNSIGNED_BYTE, bitSize: 8}}, 
-//     {"unsignedShort":   {impl: this.#gl.gl.UNSIGNED_SHORT, bitSize: 16}} , 
-//     {"int":  {impl: this.#gl.gl.INT, bitSize: 32}}, 
-//     {"unsignedInt":  {impl: this.#gl.gl.UNSIGNED_INT, bitSize: 32}}, 
-//     {"float":  {impl: this.#gl.gl.FLOAT, bitSize: 32}}, 
-//     {"halfFloat":  {impl: this.#gl.gl.HALF_FLOAT, bitSize: 16}}];
-
-
 const acceptedDataSources = ["clientArray", "clientBuffer", "VertexBuffer"];
 
 
