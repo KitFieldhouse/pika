@@ -313,8 +313,8 @@ class VertexBuffer{
     #copyData(bitIndex, data, indexUpdate){ // copies data from an external (not this gl context) source.
 
         if(data instanceof ArrayBuffer){
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#buffer);
-            this.gl.bufferSubData(this.gl.ARRAY_BUFFER, bitIndex, data, 0);
+            this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, this.#buffer);
+            this.#gl.bufferSubData(this.#gl.ARRAY_BUFFER, bitIndex, data, 0);
         }else{
             console.warn("NOT IMPLEMENT YET");
         }
@@ -324,10 +324,10 @@ class VertexBuffer{
 
     #gl_translateDataIntoBuffer(target){ // copies data from current buffer directly into the argument buffer.
 
-        this.gl.bindBuffer(this.gl.COPY_WRITE_BUFFER, target); // read from the supplied buffer and write to the current buffer
-        this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, this.#buffer);
+        this.#gl.bindBuffer(this.#gl.COPY_WRITE_BUFFER, target); // read from the supplied buffer and write to the current buffer
+        this.#gl.bindBuffer(this.#gl.COPY_READ_BUFFER, this.#buffer);
 
-        this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.COPY_WRITE_BUFFER, 0, 0, this.bufferByteSize); // transfer the contents of supplied buffer to current buffer...
+        this.#gl.copyBufferSubData(this.#gl.COPY_READ_BUFFER, this.#gl.COPY_WRITE_BUFFER, 0, 0, this.bufferByteSize); // transfer the contents of supplied buffer to current buffer...
     }
 
     #createEmptyBuffer(byteSize){
