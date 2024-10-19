@@ -50,36 +50,23 @@ class VertexBuffer{
         this.#layoutAtoms = layoutAtoms;
         this.#inputInfo = inputInfo;
 
-        console.log("constuctor was called");
-        console.dir(layoutAtoms, {depth: null});
-
-        let startBitIndex = 0;
+        let startByteIndex = 0;
         let bufferView;
         let updateFuncs;
 
         this.#resizeFunction = (opts && opts.resizeFunction) ? opts.resizeFunction : (repeatAmount, resizes) => repeatAmount*resizes;
         
         this.#subBuffersWithUpdaters = layoutAtoms.map((el) =>{
-            [bufferView, updateFuncs] = SubBufferView.create(startBitIndex , el, inputInfo ,this.#resizeFunction, this.#adjustAllIndices);
-            startBitIndex = bufferView.endBitIndex;
+            [bufferView, updateFuncs] = SubBufferView.create(startByteIndex , el, inputInfo ,this.#resizeFunction, this.#adjustAllIndices);
+            startByteIndex = bufferView.endByteIndex;
             return Object.assign({view: bufferView}, updateFuncs); // TODO: why did I do Object.assign here??
         });
 
         this.#buffer = this.#createEmptyBuffer(this.bufferByteSize);
     }
 
-    get bufferBitSize(){
-        return this.#subBuffersWithUpdaters[this.#subBuffersWithUpdaters.length - 1].view.endBitIndex;
-    }
-
     get bufferByteSize(){
-        let bits = this.bufferBitSize;
-       
-        if(bits % 8 !== 0){
-            throw new Error("FAIL(INTERNAL): Provided bit size is not divisible by 8!");
-        }
-
-        return bits/8.0;
+        return this.#subBuffersWithUpdaters[this.#subBuffersWithUpdaters.length - 1].view.endByteIndex;
     }
 
     #addData(dataList, opts, isAppend = true){
@@ -98,8 +85,8 @@ class VertexBuffer{
             let data = dataList[i];
 
             doesNotNeedResize = doesNotNeedResize && (isAppend ? 
-                       buff.checkResizeAppend(data.byteLength * 8) :
-                       buff.checkResizePrepend(data.byteLength * 8) );
+                       buff.checkResizeAppend(data.byteLength) :
+                       buff.checkResizePrepend(data.byteLength) );
         }
 
         if(!doesNotNeedResize){
@@ -117,7 +104,7 @@ class VertexBuffer{
             let buff = this.#subBuffersWithUpdaters[i];
             let data = dataList[i];
 
-            let writeIndex = isAppend ? buff.view.dataEndBitIndex : (buff.view.dataStartBitIndex - data.byteLength * 8.0); 
+            let writeIndex = isAppend ? buff.view.dataEndByteIndex : (buff.view.dataStartByteIndex - data.byteLength); 
 
             this.#copyData(writeIndex, data, 
                 isAppend ? buff.adjustWriteIndexAppend:
@@ -291,7 +278,7 @@ class VertexBuffer{
         this.#addData(dataList, opts, false);
     }
 
-    #adjustAllIndices(requestingBufferView, bitAmount){
+    #adjustAllIndices(requestingBufferView, byteAmount){
 
         // first create the empty buffer we will relocating data too
 
@@ -306,21 +293,21 @@ class VertexBuffer{
                 continue;
             }
 
-            buff.shiftBitIndices(bitAmount);
+            buff.shiftByteIndices(byteAmount);
 
         }
     }
 
-    #copyData(bitIndex, data, indexUpdate){ // copies data from an external (not this gl context) source.
+    #copyData(byteIndex, data, indexUpdate){ // copies data from an external (not this gl context) source.
 
         if(data instanceof ArrayBuffer){
             this.#gl.gl.bindBuffer(this.#gl.gl.ARRAY_BUFFER, this.#buffer);
-            this.#gl.gl.bufferSubData(this.#gl.gl.ARRAY_BUFFER, bitIndex, data, 0);
+            this.#gl.gl.bufferSubData(this.#gl.gl.ARRAY_BUFFER, byteIndex, data, 0);
         }else{
             console.warn("NOT IMPLEMENT YET");
         }
 
-        indexUpdate(data.byteLength * 8);
+        indexUpdate(data.byteLength);
     }
 
     #gl_translateDataIntoBuffer(target){ // copies data from current buffer directly into the argument buffer.
@@ -360,13 +347,13 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
 
     #repeatSize = 0;
 
-    #startBitIndex = 0;
-    #endBitIndex = 0;
+    #startByteIndex = 0;
+    #endByteIndex = 0;
 
-    #dataStartBitIndex = 0;
-    #dataEndBitIndex = 0;
+    #dataStartByteIndex = 0;
+    #dataEndByteIndex = 0;
 
-    #datumBitSize = 0;
+    #datumByteSize = 0;
 
     #resizes = 0;
 
@@ -375,16 +362,16 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
     #adjustAllIndices;
 
 
-    static create(startBitIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices){
+    static create(startByteIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices){
 
-        let view = new SubBufferView(startBitIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices);
+        let view = new SubBufferView(startByteIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices);
 
-        return [view, {shiftBitIndices: view.#shiftBitIndices, checkResizeAppend: view.#checkResizeAppend, 
+        return [view, {shiftByteIndices: view.#shiftByteIndices, checkResizeAppend: view.#checkResizeAppend, 
                        checkResizePrepend: view.#checkResizePrepend, adjustWriteIndexPrepend: view.#adjustWriteIndexPrepend,
                        adjustWriteIndexAppend: view.#adjustWriteIndexAppend}];
     }
 
-    constructor(startBitIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices){
+    constructor(startByteIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices){
 
         this.#resizeFunction = resizeFunction;
         this.#adjustAllIndices = adjustAllIndices;
@@ -392,11 +379,9 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         console.log(layoutAtom.arguments.map(el => inputInfo[el].type));
         console.log(inputInfo);
 
-        this.#datumBitSize = layoutAtom.arguments.reduce((acc, el) => inputInfo[el].size*typeInfo[inputInfo[el].type].bitSize + acc , 0)
+        this.#datumByteSize = layoutAtom.arguments.reduce((acc, el) => inputInfo[el].size*(typeInfo[inputInfo[el].type].bitSize/8.0) + acc , 0)
 
-        console.log(this.#datumBitSize);
-
-        let size =  layoutAtom.opts.size ?? 100;
+        let size =  layoutAtom.opts.size ?? 100; // TODO: this needs to be thrown out??
         
         if(layoutAtom.repeatType === 'center' && size % 2 === 1){
             size = size + 1; // even sizes only for center repeat....
@@ -404,46 +389,46 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
 
         this.#repeatSize = size;
 
-        this.#startBitIndex = startBitIndex;
-        this.#endBitIndex = this.#startBitIndex + size*this.#datumBitSize;
+        this.#startByteIndex = startByteIndex;
+        this.#endByteIndex = this.#startByteIndex + size*this.#startByteIndex;
         
         if(layoutAtom.repeatType === 'start'){
-            this.#dataStartBitIndex =this.#startBitIndex;
-            this.#dataEndBitIndex = this.#startBitIndex; // index of the next free open spot
+            this.#dataStartByteIndex =this.#startByteIndex;
+            this.#dataEndByteIndex = this.#startByteIndex; // index of the next free open spot
         }else if(layoutAtom.repeatType === 'end'){
-            this.#dataStartBitIndex = this.#endBitIndex;
-            this.#dataEndBitIndex = this.#endBitIndex; // index of the next free open spot
+            this.#dataStartByteIndex = this.#endByteIndex;
+            this.#dataEndByteIndex = this.#endByteIndex; // index of the next free open spot
         }else{
-            let halfBit = (this.#startBitIndex + this.#endBitIndex) / 2;
-            this.#dataStartBitIndex = halfBit;
-            this.#dataEndBitIndex = halfBit; // index of the next free open spot
+            let halfByte = (this.#startByteIndex + this.#endByteIndex) / 2;
+            this.#dataStartByteIndex = halfByte;
+            this.#dataEndByteIndex = halfByte; // index of the next free open spot
         }
         
 
     }
 
-    #shiftBitIndices(amount){
-        this.#startBitIndex = this.#startBitIndex + amount;
-        this.#endBitIndex = this.#endBitIndex + amount;
-        this.#dataStartBitIndex = this.#dataStartBitIndex + amount;
-        this.#dataEndBitIndex = this.#dataEndBitIndex + amount;
+    #shiftByteIndices(amount){
+        this.#startByteIndex = this.#startByteIndex + amount;
+        this.#endByteIndex = this.#endByteIndex + amount;
+        this.#dataStartByteIndex = this.#dataStartByteIndex + amount;
+        this.#dataEndByteIndex = this.#dataEndByteIndex + amount;
     }
 
     // these adjust the indices of this 
-    #checkResizePrepend(numberOfBits){
+    #checkResizePrepend(numberOfBytes){
 
-        if(numberOfBits % this.#datumBitSize){
-            throw new Error("FAIL(INTERNAL): Number of bits requested to add to this view is not divisible by the views datum bit size!");
+        if(numberOfBytes % this.#datumByteSize){
+            throw new Error("FAIL(INTERNAL): Number of Bytes requested to add to this view is not divisible by the views datum Byte size!");
         }
         
-        let newDataStart = this.#dataStartBitIndex - numberOfBits;
+        let newDataStart = this.#dataStartByteIndex - numberOfBytes;
         
-        if(newDataStart < this.#startBitIndex){
-            let resizeShiftAmount = this.#calculateResizeAmount(this.#startBitIndex - newDataStart);
+        if(newDataStart < this.#startByteIndex){
+            let resizeShiftAmount = this.#calculateResizeAmount(this.#startByteIndex - newDataStart);
 
-            this.#dataStartBitIndex = this.#dataStartBitIndex + resizeShiftAmount;
-            this.#dataEndBitIndex = this.#dataEndBitIndex + resizeShiftAmount;
-            this.#endBitIndex = this.#endBitIndex + resizeShiftAmount;
+            this.#dataStartByteIndex = this.#dataStartByteIndex + resizeShiftAmount;
+            this.#dataEndByteIndex = this.#dataEndByteIndex + resizeShiftAmount;
+            this.#endByteIndex = this.#endByteIndex + resizeShiftAmount;
 
             this.#adjustAllIndices(this, resizeShiftAmount);
 
@@ -453,17 +438,17 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         return true;
     }
 
-    #checkResizeAppend(numberOfBits){
+    #checkResizeAppend(numberOfBytes){
 
-        if(numberOfBits % this.#datumBitSize){
-            throw new Error("FAIL(INTERNAL): Number of bits requested to add to this view is not divisible by the views datum bit size!");
+        if(numberOfBytes % this.#datumByteSize){
+            throw new Error("FAIL(INTERNAL): Number of bytes requested to add to this view is not divisible by the views datum byte size!");
         }
 
-        let newDataEnd = this.#dataEndBitIndex + numberOfBits;
+        let newDataEnd = this.#dataEndByteIndex + numberOfBytes;
         
-        if(newDataEnd > this.#endBitIndex){
-            let resizeShiftAmount = this.#calculateResizeAmount(newDataEnd - this.#endBitIndex); // thinking about thos write indices...
-            this.#endBitIndex = this.#endBitIndex + resizeShiftAmount;
+        if(newDataEnd > this.#endByteIndex){
+            let resizeShiftAmount = this.#calculateResizeAmount(newDataEnd - this.#endByteIndex); // thinking about thos write indices...
+            this.#endByteIndex = this.#endByteIndex + resizeShiftAmount;
 
             this.#adjustAllIndices(this, resizeShiftAmount);
 
@@ -473,15 +458,15 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         return true;
     }
 
-    #adjustWriteIndexPrepend(numberOfBits){
+    #adjustWriteIndexPrepend(numberOfBytes){
 
-        if(numberOfBits % this.#datumBitSize){
-            throw new Error("FAIL(INTERNAL): Number of bits requested to add to this view is not divisible by the views datum bit size!"); // might only be needed for dev
+        if(numberOfBytes % this.#datumByteSize){
+            throw new Error("FAIL(INTERNAL): Number of bytes requested to add to this view is not divisible by the views datum byte size!"); // might only be needed for dev
         }
 
-        this.#dataStartBitIndex = this.#dataStartBitIndex - numberOfBits;
+        this.#dataStartByteIndex = this.#dataStartByteIndex - numberOfBytes;
 
-        if(this.#dataStartBitIndex < this.#startBitIndex){
+        if(this.#dataStartByteIndex < this.#startByteIndex){
             throw new Error(`FAIL(INTERNAL): Somehow a write index adjustment was made without first checking 
                                         if the buffer needs to be resized. This is an internal error for Pika`); // this might only be needed for dev
         }
@@ -489,16 +474,16 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         return true
     }
 
-    #adjustWriteIndexAppend(numberOfBits){
+    #adjustWriteIndexAppend(numberOfBytes){
 
-        if(numberOfBits % this.#datumBitSize){
-            throw new Error("FAIL(INTERNAL): Number of bits requested to add to this view is not divisible by the views datum bit size!"); // might only be needed for dev
+        if(numberOfBytes % this.#datumByteSize){
+            throw new Error("FAIL(INTERNAL): Number of bytes requested to add to this view is not divisible by the views datum byte size!"); // might only be needed for dev
         }
 
-        this.#dataEndBitIndex = this.#dataEndBitIndex + numberOfBits;
+        this.#dataEndByteIndex = this.#dataEndByteIndex + numberOfBytes;
 
 
-        if(this.#dataEndBitIndex > this.#endBitIndex){
+        if(this.#dataEndByteIndex > this.#endByteIndex){
             throw new Error(`FAIL(INTERNAL): Somehow a write index adjustment was made without first checking 
                                         if the buffer needs to be resized. This is an internal error for Pika`); // this might only be needed for dev
         }
@@ -507,47 +492,46 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
     }
 
     #calculateResizeAmount(neededShiftAmount){
-        let increasedBitAmount = 0;
+        let increasedByteAmount = 0;
 
-        while(increasedBitAmount < neededShiftAmount){ // TODO: is this really necessary??
+        while(increasedByteAmount < neededShiftAmount){ // TODO: is this really necessary??
             this.#resizes = this.#resizes + 1;
-            increasedBitAmount = this.#datumBitSize*this.#resizeFunction(this.#repeatSize, this.#resizes);
+            increasedByteAmount = this.#datumByteSize*this.#resizeFunction(this.#repeatSize, this.#resizes);
         }
 
-        return increasedBitAmount;
+        return increasedByteAmount;
     }
 
-    get endBitIndex(){
-        return this.#endBitIndex;
+    get endByteIndex(){
+        return this.#endByteIndex;
     }
 
-    get startBitIndex(){
-        return this.#startBitIndex;
+    get startByteIndex(){
+        return this.#startByteIndex;
     }
 
-
-    get bitSize(){
-        return this.#endBitIndex - this.#startBitIndex;
+    get byteSize(){
+        return this.#endByteIndex - this.#startByteIndex;
     }
 
-    get dataBitSize(){
-        return this.#dataEndBitIndex - this.#dataStartBitIndex;
+    get dataByteSize(){
+        return this.#dataEndByteIndex - this.#dataStartByteIndex;
     }
 
-    get dataStartBitIndex(){
-        return this.#dataStartBitIndex;
+    get dataStartByteIndex(){
+        return this.#dataStartByteIndex;
     }
 
-    get dataEndBitIndex(){
-        return this.#dataEndBitIndex;
+    get dataEndByteIndex(){
+        return this.#dataEndByteIndex;
     }
 
     get size(){
-        return this.bitSize/this.#datumBitSize;
+        return this.byteSizeSize/this.#datumByteSize;
     }
 
     get datumByteSize(){
-        return this.#datumBitSize / 8.0;
+        return this.#datumByteSize;
     }
 }
 
