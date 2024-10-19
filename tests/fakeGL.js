@@ -6,26 +6,24 @@
 
 export default class FakeGL{
 
-    static FLOAT = 1;
-    static HALF_FLOAT = 2;
-    static SHORT= 3;
-    static UNSIGNED_SHORT = 4;
-    static BYTE = 5;
-    static UNSIGNED_BYTE = 6; 
-    static INT = 7;
-    static UNSIGNED_INT = 8;
+    FLOAT = 1;
+    HALF_FLOAT = 2;
+    SHORT= 3;
+    UNSIGNED_SHORT = 4;
+    BYTE = 5;
+    UNSIGNED_BYTE = 6; 
+    INT = 7;
+    UNSIGNED_INT = 8;
 
 
-    static ARRAY_BUFFER = 0x8892; // these constants are ripped from Mozilla's docs on webgl
-    static COPY_WRITE_BUFFER = 0x8F37;
-    static COPY_READ_BUFFER = 0x8F36;
+    ARRAY_BUFFER = 0x8892; // these constants are ripped from Mozilla's docs on webgl
+    COPY_WRITE_BUFFER = 0x8F37;
+    COPY_READ_BUFFER = 0x8F36;
 
-    static DYNAMIC_DRAW = 0x88E8;
-    static USAGES = [this.DYNAMIC_DRAW];
+    DYNAMIC_DRAW = 0x88E8;
+    USAGES = [this.DYNAMIC_DRAW];
 
-    static currentBoundBuffer = null;
-
-    static bindings = {[this.ARRAY_BUFFER]: null, [this.COPY_WRITE_BUFFER]: null, [this.COPY_READ_BUFFER]: null};
+    #bindings = {[this.ARRAY_BUFFER]: null, [this.COPY_WRITE_BUFFER]: null, [this.COPY_READ_BUFFER]: null};
 
 
     #buffers = [];
@@ -33,44 +31,44 @@ export default class FakeGL{
 
 
     bindBuffer(bindSpot, bufferId){
-        if(bindings[bindSpot] === undefined){
-            throw new Error("FAIL(DEV): you have not provided a valid bindSpot!");
+        if(this.#bindings[bindSpot] === undefined){
+            throw new Error("FAIL(DEV): you have not provided a valid bindSpot! " + bindSpot);
         }
 
         if(this.#views[bufferId] === undefined){
-            throw new Error("FAIL: Provided buffer ID does not match any buffers created!");
+            throw new Error("FAIL: Provided buffer ID does not match any buffers created!" + bufferId);
         }
 
-        bindings[bindSpot] = bufferId;
+        this.#bindings[bindSpot] = bufferId;
 
         return true;
     }
 
     bufferData(target, sizeOrData, usage){
-        if(!USAGES.includes(usage)){
-            throw new Error("FAIL(DEV): Invalid usage given for bufferData call.");
+        if(!this.USAGES.includes(usage)){
+            throw new Error("FAIL(DEV): Invalid usage given for bufferData call: " + usage);
         }
 
-        if(bindings[target] == null){
+        if(this.#bindings[target] == null){
             throw new Error("FAIL(DEV): Either there is nothing bound to the specified target or such target does not exist!");
         }
 
         if(typeof sizeOrData === "number"){
-            this.#buffers[bindings[target]] = new ArrayBuffer(sizeOrData);
-            this.#views[bindings[target]] = new DataView(this.#buffers[bindings[target]]);
+            this.#buffers[this.#bindings[target]] = new ArrayBuffer(sizeOrData);
+            this.#views[this.#bindings[target]] = new DataView(this.#buffers[this.#bindings[target]]);
         }else{
 
             if(!(sizeOrData instanceof ArrayBuffer)){
                 throw new Error("FAIL(DEV): mock bufferData expects either a number for the size of the buffer or an arrayBuffer of data");
             }
 
-            this.#buffers[bindings[target]] = new ArrayBuffer(sizeOrData.byteLength);
-            this.#views[bindings[target]] = new DataView(this.#buffers[bindings[target]]);
+            this.#buffers[this.#bindings[target]] = new ArrayBuffer(sizeOrData.byteLength);
+            this.#views[this.#bindings[target]] = new DataView(this.#buffers[this.#bindings[target]]);
 
             let dataView = new DataView(sizeOrData);
 
             for(let i = 0 ; i < sizeOrData.byteLength; i++){
-                this.#views[bindings[target]].setUint8(i, dataView.getUint8(i,true), true);               
+                this.#views[this.#bindings[target]].setUint8(i, dataView.getUint8(i,true), true);               
             }
         }
 
@@ -80,11 +78,11 @@ export default class FakeGL{
 
 
     bufferSubData(target, offset, srcData){
-        if(bindings[target] == null){
+        if(this.#bindings[target] == null){
             throw new Error("FAIL(DEV): Either there is nothing bound to the specified target or such target does not exist!");
         }
 
-        if(!this.#buffers[bindings[target]]){
+        if(!this.#buffers[this.#bindings[target]]){
             throw new Error("FAIL(DEV): bufferSubData requires a buffer's store to be initialized first (I think...)");
         }
 
@@ -92,8 +90,8 @@ export default class FakeGL{
             throw new Error("FAIL(DEV): mock bufferSubData expects srcData to be an ArrayBuffer object");
         }
 
-        let buffer = this.#buffers[bindings[target]];
-        let view = this.#views[bindings[target]];
+        let buffer = this.#buffers[this.#bindings[target]];
+        let view = this.#views[this.#bindings[target]];
         let srcView = new DataView(srcData);
 
         if(offset + srcData.byteLength > buffer.byteLength){
@@ -108,27 +106,27 @@ export default class FakeGL{
     }
 
     copyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size){
-        if(bindings[readTarget] == null){
+        if(this.#bindings[readTarget] == null){
             throw new Error("FAIL(DEV): Either there is nothing bound to the specified readTarget or such target does not exist!");
         }
 
-        if(!this.#buffers[bindings[readTarget]]){
+        if(!this.#buffers[this.#bindings[readTarget]]){
             throw new Error("FAIL(DEV): copyBufferSubData requires a buffer's store to be initialized first (I think...)");
         }
 
-        if(bindings[writeTarget] == null){
+        if(this.#bindings[writeTarget] == null){
             throw new Error("FAIL(DEV): Either there is nothing bound to the specified writeTarget or such target does not exist!");
         }
 
-        if(!this.#buffers[bindings[writeTarget]]){
+        if(!this.#buffers[this.#bindings[writeTarget]]){
             throw new Error("FAIL(DEV): copyBufferSubData requires a buffer's store to be initialized first (I think...)");
         }
 
-        let readBuffer = this.#buffers[bindings[readTarget]];
-        let readView = this.#views[bindings[readTarget]];
+        let readBuffer = this.#buffers[this.#bindings[readTarget]];
+        let readView = this.#views[this.#bindings[readTarget]];
 
-        let writeBuffer = this.#buffers[bindings[writeTarget]];
-        let writeView = this.#views[bindings[readTarget]];
+        let writeBuffer = this.#buffers[this.#bindings[writeTarget]];
+        let writeView = this.#views[this.#bindings[readTarget]];
 
         if(readOffset + size > readBuffer.byteLength){
             throw new Error("FAIL(DEV): copyBufferSubData operation is trying to read past the end of the attached readBuffer");
@@ -149,7 +147,10 @@ export default class FakeGL{
         this.#buffers.push(null);
         this.#views.push(null);
 
-        return this.#buffers.length;
+        console.log("pushing to buffer!!");
+        console.log("buffer size " + this.#buffers.length)
+
+        return this.#buffers.length - 1;
     }
 
     deleteBuffer(i){
@@ -159,6 +160,10 @@ export default class FakeGL{
 
         return true;
 
+    }
+
+    get tests_buffers(){
+        return this.#buffers;
     }
 
 
