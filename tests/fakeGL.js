@@ -4,10 +4,7 @@
 // left of working here, mainly with trying to figure out how this buffer should 
 // be cleared of data and what that would mean yada yada yada....
 
-let buffers = [];
-let views = [];
-
-export default class fakeGl{
+export default class fakeGL{
 
     static FLOAT = 1;
     static HALF_FLOAT = 2;
@@ -31,13 +28,16 @@ export default class fakeGl{
     static bindings = {[this.ARRAY_BUFFER]: null, [this.COPY_WRITE_BUFFER]: null, [this.COPY_READ_BUFFER]: null};
 
 
+    #buffers = [];
+    #views = [];
+
 
     bindBuffer(bindSpot, bufferId){
         if(bindings[bindSpot] === undefined){
             throw new Error("FAIL(DEV): you have not provided a valid bindSpot!");
         }
 
-        if(views[bufferId] === undefined){
+        if(this.#views[bufferId] === undefined){
             throw new Error("FAIL: Provided buffer ID does not match any buffers created!");
         }
 
@@ -56,21 +56,21 @@ export default class fakeGl{
         }
 
         if(typeof sizeOrData === "number"){
-            buffers[bindings[target]] = new ArrayBuffer(sizeOrData);
-            views[bindings[target]] = new DataView(buffers[bindings[target]]);
+            this.#buffers[bindings[target]] = new ArrayBuffer(sizeOrData);
+            this.#views[bindings[target]] = new DataView(this.#buffers[bindings[target]]);
         }else{
 
             if(!(sizeOrData instanceof ArrayBuffer)){
                 throw new Error("FAIL(DEV): mock bufferData expects either a number for the size of the buffer or an arrayBuffer of data");
             }
 
-            buffers[bindings[target]] = new ArrayBuffer(sizeOrData.byteLength);
-            views[bindings[target]] = new DataView(buffers[bindings[target]]);
+            this.#buffers[bindings[target]] = new ArrayBuffer(sizeOrData.byteLength);
+            this.#views[bindings[target]] = new DataView(this.#buffers[bindings[target]]);
 
             let dataView = new DataView(sizeOrData);
 
             for(let i = 0 ; i < sizeOrData.byteLength; i++){
-                views[bindings[target]].setUint8(i, dataView.getUint8(i,true), true);               
+                this.#views[bindings[target]].setUint8(i, dataView.getUint8(i,true), true);               
             }
         }
 
@@ -84,7 +84,7 @@ export default class fakeGl{
             throw new Error("FAIL(DEV): Either there is nothing bound to the specified target or such target does not exist!");
         }
 
-        if(!buffers[bindings[target]]){
+        if(!this.#buffers[bindings[target]]){
             throw new Error("FAIL(DEV): bufferSubData requires a buffer's store to be initialized first (I think...)");
         }
 
@@ -92,8 +92,8 @@ export default class fakeGl{
             throw new Error("FAIL(DEV): mock bufferSubData expects srcData to be an ArrayBuffer object");
         }
 
-        let buffer = buffers[bindings[target]];
-        let view = views[bindings[target]];
+        let buffer = this.#buffers[bindings[target]];
+        let view = this.#views[bindings[target]];
         let srcView = new DataView(srcData);
 
         if(offset + srcData.byteLength > buffer.byteLength){
@@ -112,7 +112,7 @@ export default class fakeGl{
             throw new Error("FAIL(DEV): Either there is nothing bound to the specified readTarget or such target does not exist!");
         }
 
-        if(!buffers[bindings[readTarget]]){
+        if(!this.#buffers[bindings[readTarget]]){
             throw new Error("FAIL(DEV): copyBufferSubData requires a buffer's store to be initialized first (I think...)");
         }
 
@@ -120,15 +120,15 @@ export default class fakeGl{
             throw new Error("FAIL(DEV): Either there is nothing bound to the specified writeTarget or such target does not exist!");
         }
 
-        if(!buffers[bindings[writeTarget]]){
+        if(!this.#buffers[bindings[writeTarget]]){
             throw new Error("FAIL(DEV): copyBufferSubData requires a buffer's store to be initialized first (I think...)");
         }
 
-        let readBuffer = buffers[bindings[readTarget]];
-        let readView = views[bindings[readTarget]];
+        let readBuffer = this.#buffers[bindings[readTarget]];
+        let readView = this.#views[bindings[readTarget]];
 
-        let writeBuffer = buffers[bindings[writeTarget]];
-        let writeView = views[bindings[readTarget]];
+        let writeBuffer = this.#buffers[bindings[writeTarget]];
+        let writeView = this.#views[bindings[readTarget]];
 
         if(readOffset + size > readBuffer.byteLength){
             throw new Error("FAIL(DEV): copyBufferSubData operation is trying to read past the end of the attached readBuffer");
@@ -146,16 +146,16 @@ export default class fakeGl{
 
 
     createBuffer(){
-        buffers.push(null);
-        views.push(null);
+        this.#buffers.push(null);
+        this.#views.push(null);
 
-        return buffers.length;
+        return this.#buffers.length;
     }
 
     deleteBuffer(i){
 
-        buffers[i] = null;
-        views[i] = null;
+        this.#buffers[i] = null;
+        this.#views[i] = null;
 
         return true;
 
