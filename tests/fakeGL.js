@@ -4,7 +4,7 @@
 // left of working here, mainly with trying to figure out how this buffer should 
 // be cleared of data and what that would mean yada yada yada....
 
-export default class fakeGL{
+export default class FakeGL{
 
     static FLOAT = 1;
     static HALF_FLOAT = 2;

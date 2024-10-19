@@ -1,7 +1,7 @@
-import fakeGL from "./fakeGL";
+import FakeGL from "./fakeGL";
 
 let fakeCanvas = {};
 
-fakeCanvas.getContext = () => fakeGL;
+fakeCanvas.getContext = () => new FakeGL();
 
 export default fakeCanvas;
