@@ -8,6 +8,17 @@ let buffers = [];
 let views = [];
 
 export default class fakeGl{
+
+    static FLOAT = 1;
+    static HALF_FLOAT = 2;
+    static SHORT= 3;
+    static UNSIGNED_SHORT = 4;
+    static BYTE = 5;
+    static UNSIGNED_BYTE = 6; 
+    static INT = 7;
+    static UNSIGNED_INT = 8;
+
+
     static ARRAY_BUFFER = 0x8892; // these constants are ripped from Mozilla's docs on webgl
     static COPY_WRITE_BUFFER = 0x8F37;
     static COPY_READ_BUFFER = 0x8F36;
