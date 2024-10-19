@@ -376,9 +376,6 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         this.#resizeFunction = resizeFunction;
         this.#adjustAllIndices = adjustAllIndices;
 
-        console.log(layoutAtom.arguments.map(el => inputInfo[el].type));
-        console.log(inputInfo);
-
         this.#datumByteSize = layoutAtom.arguments.reduce((acc, el) => inputInfo[el].size*(typeInfo[inputInfo[el].type].bitSize/8.0) + acc , 0)
 
         let size =  layoutAtom.opts.size ?? 100; // TODO: this needs to be thrown out??
@@ -390,7 +387,7 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         this.#repeatSize = size;
 
         this.#startByteIndex = startByteIndex;
-        this.#endByteIndex = this.#startByteIndex + size*this.#startByteIndex;
+        this.#endByteIndex = this.#startByteIndex + size*this.#datumByteSize;
         
         if(layoutAtom.repeatType === 'start'){
             this.#dataStartByteIndex =this.#startByteIndex;
@@ -527,7 +524,7 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
     }
 
     get size(){
-        return this.byteSizeSize/this.#datumByteSize;
+        return this.byteSize/this.#datumByteSize;
     }
 
     get datumByteSize(){
