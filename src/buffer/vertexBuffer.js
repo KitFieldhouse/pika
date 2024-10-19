@@ -105,6 +105,7 @@ class VertexBuffer{
         if(!doesNotNeedResize){
             let newBuffer = this.#createEmptyBuffer(this.bufferByteSize);
             this.#gl_translateDataIntoBuffer(newBuffer);
+            this.#gl.gl.deleteBuffer(this.#buffer);
             this.#buffer = newBuffer;
             // TODO: once I incorporate VAO's, I will have to notify them here!
             // one way of doing this is by defining a setter on this.#buffer....
