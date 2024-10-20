@@ -128,7 +128,7 @@ class VertexBuffer{
 
         let translatedDataSets = []; // array of objects of the form {data: [], pts: <number of points>}
 
-        if(!opts.skipCopyMatching){
+        if(!opts.skipCopyMatching && dataSource !== "clientArray"){
             translatedDataSets = this.#layoutAtoms.map(lel => {
                 let matchingLTFR = layout.loneTopFlatRepeats.find(del => this.#canDirectCopy(del, lel));
                 return matchingLTFR? {data: matchingLTFR.getter(data), pts: matchingLTFR.size(data)} : null; // TODO: still need to get into buffer mode!!
@@ -164,8 +164,6 @@ class VertexBuffer{
             let expandedData = b;
             let opts = c;
 
-            console.log("expanded Data " + expandedData);
-
             this.#appendData(expandedData, opts);
 
 
@@ -198,7 +196,6 @@ class VertexBuffer{
             let iteration = iterators.map(el => el.next());
             let values = iteration.map(el => el.value);
 
-            console.log(values);
 
             let numberOfNulls = values.filter(el => el == null).length;
 
@@ -229,9 +226,6 @@ class VertexBuffer{
 
         // at this point we have may have an array of filled array views that need to be coagulated..
 
-        console.log(views.length);
-        console.log(offset);
-
         let finalByteSize = (views.length - 1) * VertexBuffer.temporaryArrayBufferRepeats*datumByteSize + offset;
         let finalBuffer = new ArrayBuffer(finalByteSize);
         let finalView = new DataView(finalBuffer);
@@ -247,8 +241,6 @@ class VertexBuffer{
         let lastView = views[views.length -1];
         let largestStep = null;
 
-        console.log("Final byte size: " + finalByteSize);
-
         for(let view of views){
 
             viewCursor = 0;
@@ -257,8 +249,6 @@ class VertexBuffer{
 
             while(viewCursor < endOfData){
                 largestStep = byteStepsWithGetSet.find(el => (endOfData - viewCursor) % el.size === 0); // TODO: this is probably slow...
-
-                console.log("cursor: " + cursor);
 
                 finalView[largestStep.set](cursor, view[largestStep.get](viewCursor));
 

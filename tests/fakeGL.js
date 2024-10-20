@@ -147,9 +147,6 @@ export default class FakeGL{
         this.#buffers.push(null);
         this.#views.push(null);
 
-        console.log("pushing to buffer!!");
-        console.log("buffer size " + this.#buffers.length)
-
         return this.#buffers.length - 1;
     }
 
