@@ -217,9 +217,14 @@ class VertexBuffer{
                 views.push(view)
             }
 
-            layoutAtom.arguments.forEach((input, idx) => view[dataViewGetAndSet[this.#inputInfo[input].type].set](offset, values[idx], true)); // i think i am stomping on myself here... left off
+            for(let i = 0; i < layoutAtom.arguments.length; i++){
+                let arg = layoutAtom.arguments[i];
+                let value = values[i];
 
-            offset = offset + datumByteSize;
+                view[dataViewGetAndSet[this.#inputInfo[arg].type].set](offset, value, true);
+                offset = offset + typeInfo[this.#inputInfo[arg].type].bitSize/8.0;
+
+            }
         }
 
         // at this point we have may have an array of filled array views that need to be coagulated..
