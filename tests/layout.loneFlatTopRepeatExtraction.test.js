@@ -50,3 +50,10 @@ test("Layout correctly calculated the number of repeats for buffer data", () =>{
     expect(compLayout.loneTopFlatRepeats[1].size(compBufferData)).toBe(4);
 });
 
+
+test("Extracted lone flat top repeats are associated with correct getter for more complex layout buffer data", () =>{
+    console.log(compLayout.loneTopFlatRepeats[0].getter(compBufferData));
+    expect(Array.from(new Float32Array(compLayout.loneTopFlatRepeats[0].getter(compBufferData)))).toEqual([1,2,1,2,1,2,1,2,1,2]);
+    expect(Array.from(new Float32Array(compLayout.loneTopFlatRepeats[1].getter(compBufferData)))).toEqual( [3,4,3,4,3,4,3,4]);
+});
+
