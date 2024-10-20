@@ -198,7 +198,7 @@ class DataSet {
 
         effects.forEach(el => el.doAppend());
 
-        return effects.map(el => el.pointsAdded); // TODO: or something similar, way to pass info on how the dataSets have changed...
+        return {pointsAdded: effects.map(el => el.pointsAdded), numberOfDirectCopies: effects.map(el => el.numberOfDirectCopies)}; // TODO: or something similar, way to pass info on how the dataSets have changed...
         
 
     }
