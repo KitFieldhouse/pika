@@ -135,8 +135,6 @@ test("Test datastore append on a vertex buffer dataStore, same layout, direct co
 
   let effects = dataset.appendData(data.buffer, [GL.repeat('x', 'y')]);
 
-  console.log(data.buffer)
-
   expect(effects.numberOfDirectCopies).toEqual([1])
 
   expect(gl.gl.tests_buffers.length).toBe(1);

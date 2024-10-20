@@ -3,7 +3,7 @@ import {typeInfo, dataViewGetAndSet} from "../private/types.js"
 
 // all nasty type checking (array vs blob) should be done in this class
 
-const acceptedDataSources = ["clientArray", "clientBuffer", "VertexBuffer"];
+const acceptedDataSources = ["client", "VertexBuffer"];
 
 
 class VertexBuffer{
@@ -119,20 +119,17 @@ class VertexBuffer{
             throw new Error(`FAIL: VertexBuffer cannot accept a data source of ${dataSource}. \n Accepted sources: ${JSON.stringify(acceptedDataSources)}`);
         }
 
-        if(dataSource === "clientBuffer"){
-            data = [data];
-        }
-
         // first check to see if we have any lone top flat repeats that match the layout atoms for this vertex buffer. If so, we can simply just copy the data 
         // from its source without performing any unwrapping
 
         let translatedDataSets = []; // array of objects of the form {data: [], pts: <number of points>}
 
-        if(!opts.skipCopyMatching && dataSource !== "clientArray"){
+        if(!opts.skipCopyMatching){
             translatedDataSets = this.#layoutAtoms.map(lel => {
                 let matchingLTFR = layout.loneTopFlatRepeats.find(del => this.#canDirectCopy(del, lel));
-                console.log(matchingLTFR.getter(data));
-                return matchingLTFR? {data: matchingLTFR.getter(data), pts: matchingLTFR.size(data)} : null; // TODO: still need to get into buffer mode!!
+                let directCopyCandidate = matchingLTFR? matchingLTFR.getter(data): null;
+
+                return directCopyCandidate && !(directCopyCandidate instanceof Array) ? {data: directCopyCandidate, pts: matchingLTFR.size(data)} : null; // TODO: still need to get into buffer mode!!
             });
         }
 

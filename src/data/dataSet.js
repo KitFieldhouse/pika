@@ -190,6 +190,10 @@ class DataSet {
         let dataSource;
         [dataSource, layoutDesc] = this.#determineDataSource(data, layoutDesc);
 
+        if(dataSource === "client" && !(data instanceof Array)){
+            data = [data];
+        }
+
         let layout = this.#processLayoutInput(layoutDesc, opts);
 
         let effects = this.#dataStores.map(el => el.sizeAppend(dataSource, layout, data, opts));
@@ -214,11 +218,9 @@ class DataSet {
 
         if(data[isGLObjectRef]){
             return [data.type, data.layout]
-        }else if(data instanceof Array){
-            return ["clientArray", layoutDesc]
-        }else if(data instanceof ArrayBuffer){
-            return ["clientBuffer", layoutDesc]
-        }   
+        }else {
+            return ["client", layoutDesc]
+        }
 
         throw new Error("FAIL: Data provided to append/prepend cannot be used as a data source.");
     }
