@@ -131,7 +131,7 @@ class VertexBuffer{
         if(!opts.skipCopyMatching){
             translatedDataSets = this.#layoutAtoms.map(lel => {
                 let matchingLTFR = layout.loneTopFlatRepeats.find(del => this.#canDirectCopy(del, lel));
-                return matchingLTFR? {data: matchingLTFR.getter(data), pts: matchingLTFR.size(data)} : null 
+                return matchingLTFR? {data: matchingLTFR.getter(data), pts: matchingLTFR.size(data)} : null; // TODO: still need to get into buffer mode!!
             });
         }
 
@@ -152,7 +152,7 @@ class VertexBuffer{
         }
 
 
-        return {pointsAdded: translatedDataSets[0].pts, doAppend: () => this.requestAppend(dataSource, translatedDataSets.map(el => el.data), opts ?? null)}; // left off here
+        return {pointsAdded: translatedDataSets[0].pts, doAppend: () => this.requestAppend(dataSource, translatedDataSets.map(el => el.data), opts ?? null)};
 
     }
 
@@ -163,6 +163,8 @@ class VertexBuffer{
             let dataSource = a;
             let expandedData = b;
             let opts = c;
+
+            console.log("expanded Data " + expandedData);
 
             this.#appendData(expandedData, opts);
 
@@ -177,12 +179,9 @@ class VertexBuffer{
 
     #repackData(layoutAtom, dataLayout, data, opts){
 
-        let datumByteSize = layoutAtom.arguments.reduce( (acc, el) => acc + typeInfo[el].bitSize, 0)/8.0;
+        let datumByteSize = layoutAtom.arguments.reduce( (acc, el) => acc + typeInfo[this.#inputInfo[el].type].bitSize, 0)/8.0;
 
         // TODO: need to do some thinking here on if copying to an array as an intermediate causes this to be slow.
-        // left off here, need to make this a github issue and continue with unwrapping the data into an ARRAY, then 
-        // it would be interesting to implement a buffer way of doing this so I can compare later, if such a thing 
-        // is possible...
 
         // at this point I need to test the difference between filling an array and then filling a buffer vs what I 
         // have now which is immediately filling the buffer used by the buffer for filling....
@@ -193,11 +192,14 @@ class VertexBuffer{
         let iterators = layoutAtom.arguments.map(el => dataLayout.createInputIterator(el, data));
 
         let allDone = false;
-        offset = 0;
+        let offset = 0;
 
         while(!allDone){
             let iteration = iterators.map(el => el.next());
-            let values = iteration.map(el => el.values);
+            let values = iteration.map(el => el.value);
+
+            console.log(values);
+
             let numberOfNulls = values.filter(el => el == null).length;
 
             if(numberOfNulls !== 0 && numberOfNulls !== values.length){
@@ -215,12 +217,15 @@ class VertexBuffer{
                 views.push(view)
             }
 
-            layoutAtom.arguments.forEach((input, idx) => view[dataViewGetAndSet[this.#inputInfo[input].type].set](offset, values[idx], true));
+            layoutAtom.arguments.forEach((input, idx) => view[dataViewGetAndSet[this.#inputInfo[input].type].set](offset, values[idx], true)); // i think i am stomping on myself here... left off
 
             offset = offset + datumByteSize;
         }
 
         // at this point we have may have an array of filled array views that need to be coagulated..
+
+        console.log(views.length);
+        console.log(offset);
 
         let finalByteSize = (views.length - 1) * VertexBuffer.temporaryArrayBufferRepeats*datumByteSize + offset;
         let finalBuffer = new ArrayBuffer(finalByteSize);
@@ -230,19 +235,26 @@ class VertexBuffer{
 
 
 
-        let byteStepsWithGetSet = [{size: 8, get: "getUInt64", set: "setUInt64"}, {size: 4, get: "getUInt32", set: "setUInt32"}, {size: 2, get: "getUInt16", set: "setUInt16"}, {size: 1, get: "getUInt8", set: "setUInt8"}]
+        let byteStepsWithGetSet = [{size: 8, get: "getBigUint64", set: "setBigUint64"}, {size: 4, get: "getUint32", set: "setUint32"}, {size: 2, get: "getUint16", set: "setUint16"}, {size: 1, get: "getUint8", set: "setUint8"}]
 
         let cursor = 0;
         let viewCursor = 0;
         let lastView = views[views.length -1];
         let largestStep = null;
 
+        console.log("Final byte size: " + finalByteSize);
+
         for(let view of views){
 
             viewCursor = 0;
 
-            while(viewCursor < view.byteLength && !(view === lastView && viewCursor > offset)){
-                largestStep = byteStepsWithGetSet.find(el => (view.byteLength - cursor) % el.size === 0);
+            let endOfData = view == lastView? offset : view.byteLength; 
+
+            while(viewCursor < endOfData){
+                largestStep = byteStepsWithGetSet.find(el => (endOfData - viewCursor) % el.size === 0); // TODO: this is probably slow...
+
+                console.log("cursor: " + cursor);
+
                 finalView[largestStep.set](cursor, view[largestStep.get](viewCursor));
 
                 cursor = cursor + largestStep.size;
@@ -304,7 +316,7 @@ class VertexBuffer{
             this.#gl.gl.bindBuffer(this.#gl.gl.ARRAY_BUFFER, this.#buffer);
             this.#gl.gl.bufferSubData(this.#gl.gl.ARRAY_BUFFER, byteIndex, data, 0);
         }else{
-            console.warn("NOT IMPLEMENT YET");
+            console.log(data);
         }
 
         indexUpdate(data.byteLength);
@@ -366,9 +378,9 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
 
         let view = new SubBufferView(startByteIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices);
 
-        return [view, {shiftByteIndices: view.#shiftByteIndices, checkResizeAppend: view.#checkResizeAppend, 
-                       checkResizePrepend: view.#checkResizePrepend, adjustWriteIndexPrepend: view.#adjustWriteIndexPrepend,
-                       adjustWriteIndexAppend: view.#adjustWriteIndexAppend}];
+        return [view, {shiftByteIndices: (...args) => view.#shiftByteIndices(args), checkResizeAppend: (...args) => view.#checkResizeAppend(...args), 
+                       checkResizePrepend: (...args) => view.#checkResizePrepend(args), adjustWriteIndexPrepend: (...args) => view.#adjustWriteIndexPrepend(...args),
+                       adjustWriteIndexAppend: (...args) => view.#adjustWriteIndexAppend(...args)}];
     }
 
     constructor(startByteIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices){
