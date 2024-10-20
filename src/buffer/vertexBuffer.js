@@ -69,7 +69,7 @@ class VertexBuffer{
         return this.#subBuffersWithUpdaters[this.#subBuffersWithUpdaters.length - 1].view.endByteIndex;
     }
 
-    #addData(dataList, opts, isAppend = true){
+    #addData(dataSource ,dataList, opts, isAppend = true){
 
         if(dataList.length !== this.#subBuffersWithUpdaters.length){
             throw new Error("FAIL: Provided data array must have a value for each subview of this buffer"); // is this needed??
@@ -106,7 +106,7 @@ class VertexBuffer{
 
             let writeIndex = isAppend ? buff.view.dataEndByteIndex : (buff.view.dataStartByteIndex - data.byteLength); 
 
-            this.#copyData(writeIndex, data, 
+            this.#copyData(dataSource , writeIndex, data, 
                 isAppend ? buff.adjustWriteIndexAppend:
                            buff.adjustWriteIndexPrepend);
         }
@@ -131,16 +131,20 @@ class VertexBuffer{
         if(!opts.skipCopyMatching && dataSource !== "clientArray"){
             translatedDataSets = this.#layoutAtoms.map(lel => {
                 let matchingLTFR = layout.loneTopFlatRepeats.find(del => this.#canDirectCopy(del, lel));
+                console.log(matchingLTFR.getter(data));
                 return matchingLTFR? {data: matchingLTFR.getter(data), pts: matchingLTFR.size(data)} : null; // TODO: still need to get into buffer mode!!
             });
         }
 
           // TODO: there is probably some things I can do to increase the time efficiency of sizing non-flat repeats.... ??????
+
+        let numberOfDirectCopies = 0;
         
         for(let i = 0; i < this.#layoutAtoms.length; i++){
             if(!translatedDataSets[i]){
                 translatedDataSets[i] = this.#repackData(this.#layoutAtoms[i], layout, data, opts);
             }else{
+                numberOfDirectCopies++;
                 continue;
             }
         }
@@ -152,7 +156,7 @@ class VertexBuffer{
         }
 
 
-        return {pointsAdded: translatedDataSets[0].pts, doAppend: () => this.requestAppend(dataSource, translatedDataSets.map(el => el.data), opts ?? null)};
+        return {pointsAdded: translatedDataSets[0].pts, doAppend: () => this.requestAppend(dataSource, translatedDataSets.map(el => el.data), opts ?? null), numberOfDirectCopies};
 
     }
 
@@ -164,7 +168,7 @@ class VertexBuffer{
             let expandedData = b;
             let opts = c;
 
-            this.#appendData(expandedData, opts);
+            this.#appendData(dataSource, expandedData, opts);
 
 
         }else{
@@ -277,12 +281,12 @@ class VertexBuffer{
 
     }
 
-    #appendData(dataList, opts){ // data is in an array in order of which view it should go to.
-        this.#addData(dataList, opts, true);
+    #appendData(dataSource, dataList, opts){ // data is in an array in order of which view it should go to.
+        this.#addData(dataSource, dataList, opts, true);
     }
 
-    #prependData(dataList, opts){
-        this.#addData(dataList, opts, false);
+    #prependData(dataSource, dataList, opts){
+        this.#addData(dataSource, dataList, opts, false);
     }
 
     #adjustAllIndices(requestingBufferView, byteAmount){
@@ -305,9 +309,9 @@ class VertexBuffer{
         }
     }
 
-    #copyData(byteIndex, data, indexUpdate){ // copies data from an external (not this gl context) source.
+    #copyData(dataSource, byteIndex, data, indexUpdate){ // copies data from an external (not this gl context) source.
 
-        if(data instanceof ArrayBuffer){
+        if(dataSource !== "VertexBuffer"){
             this.#gl.gl.bindBuffer(this.#gl.gl.ARRAY_BUFFER, this.#buffer);
             this.#gl.gl.bufferSubData(this.#gl.gl.ARRAY_BUFFER, byteIndex, data, 0);
         }else{
