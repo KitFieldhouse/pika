@@ -300,8 +300,25 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
                     //console.log(`Firing getter with data: ${data}`);
                     
-                    if(typer(data)){ // is array
-                        return data[staticsArraySizeSoFar + nonStaticsArraySizeSoFar*portionNonStatic(data)] ?? null;
+                    if(typer(data)){ // is array // TODO: this needs to be tested!!
+                        if(inputInfo.datumArraySize === 1){
+                            let extractedData = data[staticsArraySizeSoFar + nonStaticsArraySizeSoFar*portionNonStatic(data)] ?? null;
+
+                            if(extractedData && inputInfo.unexpandedVector && !(extractedData instanceof Array)){
+                                throw new Error("FAIL: Vectors that have not been explicitly expanded need to have type array!")
+                            }
+
+                            if(extractedData && inputInfo.unexpandedVector && extractedData.length !== inputInfo.vectorSize){
+                                throw new Error("FAIL: Provided data has incorrect vector dimension for input: " + arg);
+                            }
+
+                            return extractedData;
+                        }else{
+                            let startIndex = staticsArraySizeSoFar + nonStaticsArraySizeSoFar*portionNonStatic(data);
+                            let slice = (data ?? []).slice(startIndex, startIndex + inputInfo.datumArraySize)
+
+                            return slice.length === 0 ? null : slice;
+                        }
                     }else if(data != null){ // is buffer
                         let view = new DataView(data[0]);
 
