@@ -89,6 +89,8 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
     #loneTopFlatRepeats = []; 
 
+    #atomics = {}; // of the form {<input>: [all layout objs that reference that input directly]}
+
     #opts;
     #layoutArray;
 
@@ -319,6 +321,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 let adjustedPath = [...path, getterObject];
 
                 this.#reconcileWithGetterTree(el, adjustedPath);
+                this.#updateAtomics(el);
             }
 
         }
@@ -400,6 +403,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 let adjustedPath = [...path, getterObject];
 
                 this.#reconcileWithGetterTree(arg, adjustedPath);
+                this.#updateAtomics(arg, repeatObj);
 
             }else{
                 throw new Error("FAIL: Something went horribly wrong...");
@@ -476,6 +480,22 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
             prevCreatedNodeObj = newNode;
         }
 
+    }
+
+    #updateAtomics(input, repeatObj){
+
+        if(!this.#atomics[input]){
+            this.#atomics[input] = [];
+        }
+
+        if(!repeatObj){
+            this.#atomics[input].push({nonRepeat: true}); // TODO: make sure the property naming is consistent with what I have for the getter tree structure
+            return
+        }
+
+        //console.log("updating atomics with input: " + input);
+
+        this.#atomics[input].push(repeatObj);
     }
 
     getValue(input, data, ...indices){
@@ -643,6 +663,10 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         return true
 
 
+    }
+
+    getDataLayoutAtoms(input){
+        return this.#atomics[input];
     }
 
     get dim(){
