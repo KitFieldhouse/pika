@@ -472,18 +472,29 @@ let multiDimLayoutMultiRepeatVectorsExp = new Layout([GL.repeat([GL.repeat('v','
 
 let vectorDataExp = [[1,2,3, 4], [5,6,7, 8, 9, 10, 11, 12], [-1, -2, -3, -4], [0,0, 1], [1,1, 2, 2,2, 3], [3,3, 4]]
 
-test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors", () =>{
+test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors expanded", () =>{
     expect(multiDimLayoutMultiRepeatVectorsExp.getValue('v', vectorDataExp, 2)).toEqual([9, 10, 11]);
 });
 
 
-test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors", () =>{
+test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors expanded", () =>{
     expect(multiDimLayoutMultiRepeatVectorsExp.getValue('w', vectorDataExp, 3)).toEqual([3,3]);
 });
 
 
-test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors", () =>{
+test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors expanded", () =>{
     expect(multiDimLayoutMultiRepeatVectorsExp.getValue('y', vectorDataExp, 3)).toEqual(4);
+});
+
+
+
+let multiDimLayoutMultiRepeatVectorsMixExp = new Layout([[GL.repeat({expandVectors: ['v']}, 'v')], [GL.repeat('v')]], inputWithVectors);
+
+
+let vectorDataMixExp = [[1,2,3,4,5,6], [[7,8,9], [10,11,12]]]
+
+test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors mixed expanded", () =>{
+    expect(Array.from(multiDimLayoutMultiRepeatVectorsMixExp.createInputIterator('v', vectorDataMixExp))).toEqual([[1,2,3], [4,5,6], [7,8,9], [10, 11, 12]]);
 });
 
 
