@@ -291,9 +291,9 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
                 //console.log("found other inside this arr (hopefully either a string or a symbol)");
 
-                staticsArraySize = staticsArraySize + this.#lookupInput(el).datumArraySize;
-
                 let inputInfo = this.#lookupInput(el);
+
+                staticsArraySize = staticsArraySize + inputInfo.datumArraySize;
                 staticsByteSize = staticsByteSize + inputInfo.datumByteSize;
 
                 let getterObject = {getter: (data) => {
@@ -362,7 +362,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                 datumArraySize++;
                 
             }else if(typeof arg === "string" || typeof arg === "symbol"){
-                let inputInfo = this.#lookupInput(arg);
+                let inputInfo = this.#lookupInput(arg, repeatObj);
                 datumByteSize = datumByteSize + inputInfo.datumByteSize;
                 datumArraySize = datumArraySize + inputInfo.datumArraySize;
 
@@ -421,7 +421,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
     // {name: 'y', size: 1, type: 'float'},
     // {name: 'a', size: 1, type: 'float'},
     // {name: 'b', size: 1, type: 'float'} <------ inputs have this form
-    #lookupInput(name){
+    #lookupInput(name, repeatObj = null){
         let inputObject = this.#inputs[name];
 
         if(!inputObject){
@@ -434,7 +434,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
         let datumArraySize = 1;
 
-        if(this.#opts.expandVectors && this.#opts.expandVectors.includes(name)){
+        if((this.#opts.expandVectors && this.#opts.expandVectors.includes(name)) || (repeatObj && repeatObj.opts.expandVectors && repeatObj.opts.expandVectors.includes(name))){
             datumArraySize = inputObject.size;
             // console.log(datumArraySize);
         }
