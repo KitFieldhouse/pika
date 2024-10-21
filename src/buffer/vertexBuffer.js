@@ -126,6 +126,11 @@ class VertexBuffer{
 
         if(!opts.skipCopyMatching){
             translatedDataSets = this.#layoutAtoms.map(lel => {
+
+                if(!this.#oneDataLayoutsForOneInput(lel, layout)){
+                    return null
+                }
+
                 let matchingLTFR = layout.loneTopFlatRepeats.find(del => this.#canDirectCopy(del, lel));
                 let directCopyCandidate = matchingLTFR? matchingLTFR.getter(data): null;
 
@@ -260,6 +265,16 @@ class VertexBuffer{
 
         return {data: finalBuffer, pts: finalByteSize/datumByteSize};
 
+    }
+
+    #oneDataLayoutsForOneInput(layoutAtom, dataLayout){
+        for(let arg of layoutAtom.arguments){
+            if(dataLayout.getDataLayoutAtoms(arg).length > 1){
+                return false
+            }
+        }
+
+        return true;
     }
 
     #canDirectCopy(dataLayoutAtom, layoutAtom){
