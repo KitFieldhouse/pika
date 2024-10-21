@@ -183,7 +183,7 @@ class VertexBuffer{
 
     #repackData(layoutAtom, dataLayout, data, opts){
 
-        let datumByteSize = layoutAtom.arguments.reduce( (acc, el) => acc + typeInfo[this.#inputInfo[el].type].bitSize, 0)/8.0;
+        let datumByteSize = layoutAtom.arguments.reduce( (acc, el) => acc + this.#inputInfo[el].size*typeInfo[this.#inputInfo[el].type].bitSize, 0)/8.0;
 
         // TODO: need to do some thinking here on if copying to an array as an intermediate causes this to be slow.
 
@@ -223,9 +223,13 @@ class VertexBuffer{
             for(let i = 0; i < layoutAtom.arguments.length; i++){
                 let arg = layoutAtom.arguments[i];
                 let value = values[i];
+                
+                let nonVectorSize = typeInfo[this.#inputInfo[arg].type].bitSize/8.0;
 
-                view[dataViewGetAndSet[this.#inputInfo[arg].type].set](offset, value, true);
-                offset = offset + typeInfo[this.#inputInfo[arg].type].bitSize/8.0;
+                for(let k = 0; k < this.#inputInfo[arg].size; k++){
+                    view[dataViewGetAndSet[this.#inputInfo[arg].type].set](offset, value[k] ?? value, true);
+                    offset = offset + nonVectorSize;
+                }
 
             }
         }

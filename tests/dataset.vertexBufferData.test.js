@@ -243,5 +243,46 @@ test("Test datastore append on a vertex buffer dataStore, same layout, direct co
 });
 
 
+test("Test datastore append on several vertex buffer dataStores, complex layout, no direct copy, mixed data types with vectors", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 2, type: 'float'},  // vector type
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 3, type: 'float'},  // vector type
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')]), GL.VertexBuffer( [GL.repeat('w')]), GL.VertexBuffer( [GL.repeat('z')])]
+  });
+
+  let dataXY = ([1,[2, 2],3, [4, 4]]);
+  let dataW = [[1,2,3], [4,5,6]];
+  let dataZ = [9,8];
+
+  let data = [dataXY, dataW, dataZ]
+  let dataDescriptor = [[GL.repeat('x','y')], [GL.repeat("w")], [GL.repeat('z')]];
+
+  let effects = dataset.appendData(data, dataDescriptor); 
+
+  expect(effects.numberOfDirectCopies).toEqual([0,0,0])
+
+  expect(gl.gl.tests_buffers.length).toBe(3);
+  expect(gl.gl.tests_buffers[0].byteLength).toBe(1200);
+  expect(gl.gl.tests_buffers[1].byteLength).toBe(1200);
+  expect(gl.gl.tests_buffers[2].byteLength).toBe(400);
+
+  expect(Array.from(new Float32Array(gl.gl.tests_buffers[0].slice(0, 12*2)))).toEqual([1,2,2,3,4,4]);
+  expect(Array.from(new Float32Array(gl.gl.tests_buffers[1].slice(0, 12*2)))).toEqual([1,2,3,4,5,6]);
+  expect(Array.from(new Float32Array(gl.gl.tests_buffers[2].slice(0, 4*2)))).toEqual([9,8]);
+
+  // expect();
+
+});
+
+
+
 
 
