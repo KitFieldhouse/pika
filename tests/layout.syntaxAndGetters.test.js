@@ -491,11 +491,18 @@ test("Test retrieving multi dimensional, multi repeat, array datagrab with vecto
 let multiDimLayoutMultiRepeatVectorsMixExp = new Layout([[GL.repeat({expandVectors: ['v']}, 'v')], [GL.repeat('v')]], inputWithVectors);
 
 
-let vectorDataMixExp = [[1,2,3,4,5,6], [[7,8,9], [10,11,12]]]
+let vectorDataMixExp = [[1,2,3,4,5,6], [[7,8,9], [10,11,12]]];
 
 test("Test retrieving multi dimensional, multi repeat, array datagrab with vectors mixed expanded", () =>{
     expect(Array.from(multiDimLayoutMultiRepeatVectorsMixExp.createInputIterator('v', vectorDataMixExp))).toEqual([[1,2,3], [4,5,6], [7,8,9], [10, 11, 12]]);
 });
+
+let vectorDataMixExpBad = [[1,2,3,4,5,6], [7,8,9,10,11,1]]
+
+test("Unexpanded vectors should throw an error if they are not of type array in the source data", () =>{
+    expect(() => Array.from(multiDimLayoutMultiRepeatVectorsMixExp.createInputIterator('v', vectorDataMixExpBad))).toThrow("FAIL: Vectors that have not been explicitly expanded need to have type array!");
+});
+
 
 
 // TODO: more tests for vector grab: with buffer and with the iterator

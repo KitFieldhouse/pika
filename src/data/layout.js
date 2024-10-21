@@ -373,7 +373,13 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                     if(typer(data)){ // is array
                         // console.log("Getter will return: " + data[arrayOffset(data) + datumArraySizeSoFar + datumArraySize*i]);
                         if(inputInfo.datumArraySize === 1){
-                            return data[arrayOffset(data) + datumArraySizeSoFar+ datumArraySize*i] ?? null;
+                            let extractedData = data[arrayOffset(data) + datumArraySizeSoFar+ datumArraySize*i] ?? null;
+
+                            if(extractedData && inputInfo.unexpandedVector && !(extractedData instanceof Array)){
+                                throw new Error("FAIL: Vectors that have not been explicitly expanded need to have type array!")
+                            }
+
+                            return extractedData;
                         }else{
                             let startIndex = arrayOffset(data) + datumArraySizeSoFar+ datumArraySize*i;
                             let slice = (data ?? []).slice(startIndex, startIndex + inputInfo.datumArraySize)
@@ -434,12 +440,15 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
         let datumArraySize = 1;
 
-        if((this.#opts.expandVectors && this.#opts.expandVectors.includes(name)) || (repeatObj && repeatObj.opts.expandVectors && repeatObj.opts.expandVectors.includes(name))){
+        let shouldExpandVector = (this.#opts.expandVectors && this.#opts.expandVectors.includes(name)) || (repeatObj && repeatObj.opts.expandVectors && repeatObj.opts.expandVectors.includes(name))
+        let unexpandedVector = (inputObject.size !== 1) && !shouldExpandVector
+
+        if(shouldExpandVector){
             datumArraySize = inputObject.size;
             // console.log(datumArraySize);
         }
 
-        return {datumByteSize, datumArraySize, getter, setter};
+        return {datumByteSize, datumArraySize, getter, setter, unexpandedVector};
     }
 
     #reconcileWithGetterTree(input, path){
