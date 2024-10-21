@@ -379,6 +379,10 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
                                 throw new Error("FAIL: Vectors that have not been explicitly expanded need to have type array!")
                             }
 
+                            if(extractedData && inputInfo.unexpandedVector && extractedData.length !== inputInfo.vectorSize){
+                                throw new Error("FAIL: Provided data has incorrect vector dimension for input: " + arg);
+                            }
+
                             return extractedData;
                         }else{
                             let startIndex = arrayOffset(data) + datumArraySizeSoFar+ datumArraySize*i;
@@ -448,7 +452,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
             // console.log(datumArraySize);
         }
 
-        return {datumByteSize, datumArraySize, getter, setter, unexpandedVector};
+        return {datumByteSize, datumArraySize, getter, setter, unexpandedVector, vectorSize: inputObject.size};
     }
 
     #reconcileWithGetterTree(input, path){

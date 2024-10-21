@@ -504,6 +504,18 @@ test("Unexpanded vectors should throw an error if they are not of type array in 
 });
 
 
+let vectorDataMixWrongSize = [[1,2,3,4,5,6], [[7,8], [10,11]]];
+
+test("Vectors are checked that they have the correct dimension when unexpanded", () =>{
+    expect(() => Array.from(multiDimLayoutMultiRepeatVectorsMixExp.createInputIterator('v', vectorDataMixWrongSize))).toThrow("FAIL: Provided data has incorrect vector dimension for input: v");
+});
+
+
+
+
+
+
+
 
 // TODO: more tests for vector grab: with buffer and with the iterator
 
