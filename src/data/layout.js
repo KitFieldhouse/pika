@@ -51,7 +51,7 @@ class InputGetIterator{
             let lastCall = this.#savedCalls.pop();
             [leftover, result] = lastCall();
 
-            if(result){
+            if(result != null){
                 break;
             }
 
