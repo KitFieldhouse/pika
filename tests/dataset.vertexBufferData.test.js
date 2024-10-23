@@ -29,7 +29,7 @@ test("Test that a vertex buffer dataStore can be initialized", () => {
 
 
 
-test("Test datastore append on a vertex buffer dataStore, throws error if not equal number of data points", () => {
+test("Test datastore append on a vertex buffer dataStore, throws error if not equal number of data points in the same layout atom", () => {
   const gl = new GL(fakeCanvas);
 
   let inputs = {
@@ -44,9 +44,30 @@ test("Test datastore append on a vertex buffer dataStore, throws error if not eq
 
   let data = [[1,2], [3,4,5]]
 
-  expect(() => dataset.appendData(data, [[GL.repeat('x')], [GL.repeat('y')]])).toThrow("VertexBuffer requires each of its inputs to have the same number of points");
+  expect(() => dataset.appendData(data, [[GL.repeat('x')], [GL.repeat('y')]])).toThrow("FAIL: VertexBuffer requires inputs grouped in the same repeat statement to have the same number of points");
 
 });
+
+
+test("Test datastore append on a vertex buffer dataStore, can append different amount of data points for inputs not in the same layout atom", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x'), GL.repeat('y')] )]
+  });
+
+  let data = [[1,2], [3,4,5]]
+
+  expect(dataset.appendData(data, [[GL.repeat('x')], [GL.repeat('y')]])).toEqual({"numberOfDirectCopies": [0], "pointsAdded": [[2, 3]]});
+
+});
+
 
 
 test("Test datastore append on a vertex buffer dataStore, same layout", () => {

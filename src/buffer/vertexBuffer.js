@@ -151,14 +151,7 @@ class VertexBuffer{
             }
         }
 
-        let differentNumberOfPtsData = translatedDataSets.find(el => el.pts !== translatedDataSets[0].pts);
-
-        if(differentNumberOfPtsData){
-            throw new Error("FAIL: Each input must have the same number of points when adding to a vertex buffer!!");
-        }
-
-
-        return {pointsAdded: translatedDataSets[0].pts, doAppend: () => this.requestAppend(dataSource, translatedDataSets.map(el => el.data), opts ?? null), numberOfDirectCopies};
+        return {pointsAdded: translatedDataSets.map(el => el.pts), doAppend: () => this.requestAppend(dataSource, translatedDataSets.map(el => el.data), opts ?? null), numberOfDirectCopies};
 
     }
 
@@ -206,7 +199,7 @@ class VertexBuffer{
             let numberOfNulls = values.filter(el => el == null).length;
 
             if(numberOfNulls !== 0 && numberOfNulls !== values.length){
-                throw new Error("FAIL: VertexBuffer requires each of its inputs to have the same number of points!"); // TODO: improve error message
+                throw new Error("FAIL: VertexBuffer requires inputs grouped in the same repeat statement to have the same number of points!"); // TODO: improve error message
             }else if(numberOfNulls !== 0 && numberOfNulls ===values.length){
                 allDone = true;
                 break;
