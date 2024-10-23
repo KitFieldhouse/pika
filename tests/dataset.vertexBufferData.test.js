@@ -487,6 +487,45 @@ test("Test datastore prepend on a vertex buffer dataStore with end repeat layout
 });
 
 
+test("Test datastore prepend on a vertex buffer dataStore with end repeat layout will resize if encroaching on other layout atoms, large amount of data", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x'), GL.endRepeat('y')] )]
+  });
+
+
+  let data = [];
+
+  for(let i = 0; i < 605; i++){ // works out to be 1210 data points...
+    data.push(i,i*2);
+  }
+
+
+  dataset.prependData(data, [GL.repeat('y')]);
+  dataset.appendData([1,2,3], [GL.repeat('x')]);
+
+
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(6800); // 400 of which is still allocated for x data....
+
+  let reconstructedDataX = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(0,12)));
+  let reconstructedDataY = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(400 + 390 * 4)));
+
+
+  expect(reconstructedDataX).toEqual([1,2,3]);
+  expect(reconstructedDataY).toEqual(data);
+
+});
+
+
+
 
 
 
