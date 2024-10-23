@@ -41,7 +41,7 @@ class VertexBuffer{
         return this.#bufferViews[this.#bufferViews.length - 1].endByteIndex;
     }
 
-    #addData(dataSource ,dataList, opts, isAppend = true){ // -----------------REFACTOR REFACTOR REFACTOR------------------------
+    #addData(dataSource ,dataList, opts, isAppend = true){
 
         if(dataList.length !== this.#bufferViews.length){
             throw new Error("FAIL: Provided data array must have a value for each subview of this buffer"); // is this needed??
@@ -59,6 +59,11 @@ class VertexBuffer{
 
         for(let i = 0; i < dataList.length; i++){
             data = dataList[i];
+
+            if(data == null){
+                continue
+            }
+
             byteShift = isAppend ? this.#bufferViews[i].checkResizeAppend(data.byteLength) :  this.#bufferViews[i].checkResizePrepend(data.byteLength)
 
             if(!isAppend && i === 0 && byteShift != null){
@@ -87,6 +92,10 @@ class VertexBuffer{
             let view = this.#bufferViews[i];
             let data = dataList[i];
 
+            if(data == null){
+                continue
+            }
+
             let writeIndex = isAppend ? view.dataEndByteIndex : (view.dataStartByteIndex - data.byteLength); 
 
             this.#copyData(dataSource , writeIndex, data, 
@@ -94,7 +103,7 @@ class VertexBuffer{
                            () => view.adjustWriteIndexPrepend(data.byteLength));
         }
 
-    } // ---------------------------------------------------------------------
+    } 
 
     sizeAppend(dataSource, layout, data, opts){
         return this.sizeDataAdd(dataSource, layout, data, true ,opts)
@@ -118,7 +127,7 @@ class VertexBuffer{
         if(!opts.skipCopyMatching){
             translatedDataSets = this.#layoutAtoms.map(lel => {
 
-                if(!this.#oneDataLayoutsForOneInput(lel, layout)){
+                if(!this.#atMostOneDataLayoutForOneInput(lel, layout)){
                     return null
                 }
 
@@ -151,6 +160,14 @@ class VertexBuffer{
 
     #repackData(layoutAtom, dataLayout, data, opts){
 
+        if(!this.#allInputsAreInDataLayout(layoutAtom, dataLayout)){
+            if(this.#noInputsAreInDataLayout(layoutAtom, dataLayout)){
+                return {data: null, pts: 0};
+            }else{
+                throw new Error("FAIL: VertexBuffer requires inputs grouped in the same repeat statement to have the same number of points!"); // TODO: improve error message
+            }
+        }
+
         let datumByteSize = layoutAtom.arguments.reduce( (acc, el) => acc + this.#inputInfo[el].size*typeInfo[this.#inputInfo[el].type].bitSize, 0)/8.0;
 
         // TODO: need to do some thinking here on if copying to an array as an intermediate causes this to be slow.
@@ -170,7 +187,6 @@ class VertexBuffer{
             let iteration = iterators.map(el => el.next());
             let values = iteration.map(el => el.value);
 
-
             let numberOfNulls = values.filter(el => el == null).length;
 
             if(numberOfNulls !== 0 && numberOfNulls !== values.length){
@@ -185,7 +201,8 @@ class VertexBuffer{
             if(offset === buffer.byteLength){
                 buffer = new ArrayBuffer(VertexBuffer.temporaryArrayBufferRepeats*datumByteSize);
                 view = new DataView(buffer);
-                views.push(view)
+                offset = 0;
+                views.push(view);
             }
 
             for(let i = 0; i < layoutAtom.arguments.length; i++){
@@ -239,9 +256,29 @@ class VertexBuffer{
 
     }
 
-    #oneDataLayoutsForOneInput(layoutAtom, dataLayout){
+    #atMostOneDataLayoutForOneInput(layoutAtom, dataLayout){
         for(let arg of layoutAtom.arguments){
-            if(dataLayout.getDataLayoutAtoms(arg).length > 1){
+            if(dataLayout.getDataLayoutAtoms(arg) && dataLayout.getDataLayoutAtoms(arg).length > 1){
+                return false
+            }
+        }
+
+        return true;
+    }
+
+    #allInputsAreInDataLayout(layoutAtom, dataLayout){
+        for(let arg of layoutAtom.arguments){
+            if(!dataLayout.getDataLayoutAtoms(arg)){
+                return false
+            }
+        }
+
+        return true;
+    }
+
+    #noInputsAreInDataLayout(layoutAtom, dataLayout){
+        for(let arg of layoutAtom.arguments){
+            if(dataLayout.getDataLayoutAtoms(arg)){
                 return false
             }
         }
@@ -456,7 +493,7 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
 
         while(increasedByteAmount < neededShiftAmount){ // TODO: is this really necessary??
             this.#resizes = this.#resizes + 1;
-            increasedByteAmount = this.#datumByteSize*this.#resizeFunction(this.#repeatSize, this.#resizes);
+            increasedByteAmount = increasedByteAmount + this.#datumByteSize*this.#resizeFunction(this.#repeatSize, this.#resizes);
         }
 
         return increasedByteAmount;
