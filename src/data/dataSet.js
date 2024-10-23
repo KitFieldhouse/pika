@@ -170,6 +170,14 @@ class DataSet {
     // need to figure out generalizations of append/prepend for multi dim data.
 
     appendData(data, layoutDesc, opts){
+        return this.addData(data, layoutDesc, true, opts);
+    }
+
+    prependData(data, layoutDesc, opts){
+        return this.addData(data, layoutDesc, false, opts);
+    }
+
+    addData(data, layoutDesc, isAppend , opts){
 
         // check arguments.....
         if(!(layoutDesc instanceof Array)){
@@ -196,21 +204,15 @@ class DataSet {
 
         let layout = this.#processLayoutInput(layoutDesc, opts);
 
-        let effects = this.#dataStores.map(el => el.sizeAppend(dataSource, layout, data, opts));
+        let effects = this.#dataStores.map(el => isAppend? el.sizeAppend(dataSource, layout, data, opts) : 
+                                                           el.sizePrepend(dataSource, layout, data, opts));
 
         // do processing on number of points here!
 
-        effects.forEach(el => el.doAppend());
+        effects.forEach(el => el.doAdd());
 
         return {pointsAdded: effects.map(el => el.pointsAdded), numberOfDirectCopies: effects.map(el => el.numberOfDirectCopies)}; // TODO: or something similar, way to pass info on how the dataSets have changed...
         
-
-    }
-
-
-    prependData(data, layoutDesc){
-
-    
 
     }
 

@@ -97,6 +97,14 @@ class VertexBuffer{
     } // ---------------------------------------------------------------------
 
     sizeAppend(dataSource, layout, data, opts){
+        return this.sizeDataAdd(dataSource, layout, data, true ,opts)
+    }
+
+    sizePrepend(dataSource, layout, data, opts){
+        return this.sizeDataAdd(dataSource, layout, data, false ,opts)
+    }
+
+    sizeDataAdd(dataSource, layout, data, isAppend ,opts){
 
         if(!acceptedDataSources.includes(dataSource)){
             throw new Error(`FAIL: VertexBuffer cannot accept a data source of ${dataSource}. \n Accepted sources: ${JSON.stringify(acceptedDataSources)}`);
@@ -134,31 +142,10 @@ class VertexBuffer{
             }
         }
 
-        return {pointsAdded: translatedDataSets.map(el => el.pts), doAppend: () => this.requestAppend(dataSource, translatedDataSets.map(el => el.data), opts ?? null), numberOfDirectCopies};
-
-    }
-
-    requestAppend(a, b, c, opts){
-
-        if(arguments.length === 3){
-
-            let dataSource = a;
-            let expandedData = b;
-            let opts = c;
-
-            this.#appendData(dataSource, expandedData, opts);
-
-
-        }else{
-            let effects = this.sizeAppend(a,b,c, opts);
-            effects.forEach(el => el.doAppend());
-
-
-            return effects.map(el => {
-                el.doAppend = null;
-                return el;
-            });
-        }
+        return {pointsAdded: translatedDataSets.map(el => el.pts), 
+            doAdd: isAppend? () => this.#appendData(dataSource, translatedDataSets.map(el => el.data), opts ?? null) :
+                                () => this.#prependData(dataSource, translatedDataSets.map(el => el.data), opts ?? null)
+            , numberOfDirectCopies};
 
     }
 
