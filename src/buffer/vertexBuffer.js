@@ -1,49 +1,22 @@
 import {typeInfo, dataViewGetAndSet} from "../private/types.js"
 
-
-// all nasty type checking (array vs blob) should be done in this class
-
 const acceptedDataSources = ["client", "VertexBuffer"];
 
 
 class VertexBuffer{
 
-    #subBuffersWithUpdaters = []; // TODO: write description of what a subBufferView is
+    #bufferViews = []; // TODO: write description of what a subBufferView is
 
     #buffer; // this is a reference to the gl buffer.
 
     #gl;
-    // #lazyResize = false; // 'greedy' will resize as soon as any sub buffer violates its bounds. If 'lazy' in that 
-                            // it will only resize if one if the sub buffers is about to overwrite another's data.
 
-
-    #resizeFunction; // function that each view uses for requesting a new buffer size. 
-                     // inputs are the number of resizes the view has requested and the original repeat size.
-                     // the returned value of the function should be the new datum size of the buffer.
-    // some dev notes about the above function: this is a:
-    //TODO: think!
-    // The problem with having this be a buffer-level function is that I am then limiting the programmer to only 
-    // have buffer-wide resizing behavior and not sub buffer view level sizing behavior. For woodchuck this is 
-    // does not actually matter, but for a wider reach this might not be the desired behavior?? At least when 
-    // dealing with data sets in the abstract. Actually, for vertex data this will have to be the case.....
-    // Maybe if dataset is allowed to produce arbitrary type of data, like textures or something similar this 
-    // could be undesirable..... hmmmm. Well, for now this doesn't really matter so I will make this a 
-    // buffer level knob, and in the future if I want to get more fancy I can make this something that 
-    // is more fine-tunable.
-
-    #name;
+    #resizeFunction;
 
     #layoutAtoms;
     #inputInfo;
 
     static temporaryArrayBufferRepeats = 1000; // for sizing array buffers that will be filled with unwrapped data
-
-
-    static constructBufferFromAtoms(layoutAtoms, inputInfo, gl, initialData = null, opts = {}){
-        let buffer = new VertexBuffer(layoutAtoms, inputInfo, gl, opts);
-
-        return [buffer, {appendData: buffer.#appendData, prependData: buffer.#prependData} , buffer.#subBuffersWithUpdaters.map(el => el.view)];
-    }
 
     constructor(layoutAtoms, inputInfo, gl, initialData = null, opts = {}){
         this.#gl = gl;
@@ -52,46 +25,56 @@ class VertexBuffer{
 
         let startByteIndex = 0;
         let bufferView;
-        let updateFuncs;
 
         this.#resizeFunction = (opts && opts.resizeFunction) ? opts.resizeFunction : (repeatAmount, resizes) => repeatAmount*resizes;
         
-        this.#subBuffersWithUpdaters = layoutAtoms.map((el) =>{
-            [bufferView, updateFuncs] = SubBufferView.create(startByteIndex , el, inputInfo ,this.#resizeFunction, this.#adjustAllIndices);
+        this.#bufferViews = layoutAtoms.map((el) =>{
+            bufferView = new SubBufferView(startByteIndex , el, inputInfo, this.#resizeFunction);
             startByteIndex = bufferView.endByteIndex;
-            return Object.assign({view: bufferView}, updateFuncs); // TODO: why did I do Object.assign here??
+            return bufferView; // TODO: why did I do Object.assign here??
         });
 
         this.#buffer = this.#createEmptyBuffer(this.bufferByteSize);
     }
 
     get bufferByteSize(){
-        return this.#subBuffersWithUpdaters[this.#subBuffersWithUpdaters.length - 1].view.endByteIndex;
+        return this.#bufferViews[this.#bufferViews.length - 1].endByteIndex;
     }
 
-    #addData(dataSource ,dataList, opts, isAppend = true){
+    #addData(dataSource ,dataList, opts, isAppend = true){ // -----------------REFACTOR REFACTOR REFACTOR------------------------
 
-        if(dataList.length !== this.#subBuffersWithUpdaters.length){
+        if(dataList.length !== this.#bufferViews.length){
             throw new Error("FAIL: Provided data array must have a value for each subview of this buffer"); // is this needed??
         }
 
 
         //TODO: see if this algo couldn't be optimized in some way.....
 
+        let startByteLength = this.bufferByteSize;
+        let startByteShift = 0;
+
         let doesNotNeedResize = true;
+        let data = null;
+        let byteShift = null;
 
         for(let i = 0; i < dataList.length; i++){
-            let buff = this.#subBuffersWithUpdaters[i];
-            let data = dataList[i];
+            data = dataList[i];
+            byteShift = isAppend ? this.#bufferViews[i].checkResizeAppend(data.byteLength) :  this.#bufferViews[i].checkResizePrepend(data.byteLength)
 
-            doesNotNeedResize = doesNotNeedResize && (isAppend ? 
-                       buff.checkResizeAppend(data.byteLength) :
-                       buff.checkResizePrepend(data.byteLength) );
+            if(!isAppend && i === 0 && byteShift != null){
+                startByteShift = byteShift;
+            }
+
+            if(byteShift != null){
+                doesNotNeedResize = false;
+                this.#adjustAllIndices(i+1, byteShift);
+            }
+
         }
 
         if(!doesNotNeedResize){
             let newBuffer = this.#createEmptyBuffer(this.bufferByteSize);
-            this.#gl_translateDataIntoBuffer(newBuffer);
+            this.#gl_translateDataIntoBuffer(newBuffer, startByteLength, startByteShift);
             this.#gl.gl.deleteBuffer(this.#buffer);
             this.#buffer = newBuffer;
             // TODO: once I incorporate VAO's, I will have to notify them here!
@@ -101,17 +84,17 @@ class VertexBuffer{
         // copy data into the buffers
         for(let i = 0; i < dataList.length; i++){
             
-            let buff = this.#subBuffersWithUpdaters[i];
+            let view = this.#bufferViews[i];
             let data = dataList[i];
 
-            let writeIndex = isAppend ? buff.view.dataEndByteIndex : (buff.view.dataStartByteIndex - data.byteLength); 
+            let writeIndex = isAppend ? view.dataEndByteIndex : (view.dataStartByteIndex - data.byteLength); 
 
             this.#copyData(dataSource , writeIndex, data, 
-                isAppend ? buff.adjustWriteIndexAppend:
-                           buff.adjustWriteIndexPrepend);
+                isAppend ? () => view.adjustWriteIndexAppend(data.byteLength):
+                           () => view.adjustWriteIndexPrepend(data.byteLength));
         }
 
-    }
+    } // ---------------------------------------------------------------------
 
     sizeAppend(dataSource, layout, data, opts){
 
@@ -167,9 +150,14 @@ class VertexBuffer{
 
 
         }else{
-            this.sizeAppend(a,b,c, opts).doAppend();
+            let effects = this.sizeAppend(a,b,c, opts);
+            effects.forEach(el => el.doAppend());
 
-            return this.numberOfPoints;
+
+            return effects.map(el => {
+                el.doAppend = null;
+                return el;
+            });
         }
 
     }
@@ -298,23 +286,9 @@ class VertexBuffer{
         this.#addData(dataSource, dataList, opts, false);
     }
 
-    #adjustAllIndices(requestingBufferView, byteAmount){
-
-        // first create the empty buffer we will relocating data too
-
-        let afterExpandedView = false;
-
-        for(let buff of this.#subBuffersWithUpdaters){ // Adjust the indices of the contained buffer views as appropriate
-
-            if(buff.view === requestingBufferView){
-                afterExpandedView = true;
-                continue;
-            }else if(!afterExpandedView){
-                continue;
-            }
-
-            buff.shiftByteIndices(byteAmount);
-
+    #adjustAllIndices(startingIndex, byteAmount){
+        for(let i = startingIndex; i < this.#bufferViews.length; i++){ // Adjust the indices of the contained buffer views as appropriate
+            this.#bufferViews[i].shiftByteIndices(byteAmount);
         }
     }
 
@@ -330,12 +304,12 @@ class VertexBuffer{
         indexUpdate(data.byteLength);
     }
 
-    #gl_translateDataIntoBuffer(target){ // copies data from current buffer directly into the argument buffer.
+    #gl_translateDataIntoBuffer(target, copyLength, startByteShift){ // copies data from current buffer directly into the argument buffer. // THIS NEEDS REFACTORING....
 
         this.#gl.gl.bindBuffer(this.#gl.gl.COPY_WRITE_BUFFER, target); // read from the supplied buffer and write to the current buffer
         this.#gl.gl.bindBuffer(this.#gl.gl.COPY_READ_BUFFER, this.#buffer);
 
-        this.#gl.gl.copyBufferSubData(this.#gl.gl.COPY_READ_BUFFER, this.#gl.gl.COPY_WRITE_BUFFER, 0, 0, this.bufferByteSize); // transfer the contents of supplied buffer to current buffer...
+        this.#gl.gl.copyBufferSubData(this.#gl.gl.COPY_READ_BUFFER, this.#gl.gl.COPY_WRITE_BUFFER, 0, startByteShift, copyLength); // transfer the contents of supplied buffer to current buffer...
     }
 
     #createEmptyBuffer(byteSize){
@@ -358,7 +332,7 @@ class VertexBuffer{
     }
 
     get numberOfPoints(){
-        this.#subBuffersWithUpdaters[0].view.size(); // as of now, all buffer views must contain the same number of points....
+        this.#bufferViews[0].view.size(); // as of now, all buffer views must contain the same number of points....
     }
 
 }
@@ -375,30 +349,16 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
 
     #datumByteSize = 0;
 
+    #resizeFunction;
     #resizes = 0;
 
-    #resizeFunction;
-
-    #adjustAllIndices;
-
-
-    static create(startByteIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices){
-
-        let view = new SubBufferView(startByteIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices);
-
-        return [view, {shiftByteIndices: (...args) => view.#shiftByteIndices(args), checkResizeAppend: (...args) => view.#checkResizeAppend(...args), 
-                       checkResizePrepend: (...args) => view.#checkResizePrepend(args), adjustWriteIndexPrepend: (...args) => view.#adjustWriteIndexPrepend(...args),
-                       adjustWriteIndexAppend: (...args) => view.#adjustWriteIndexAppend(...args)}];
-    }
-
-    constructor(startByteIndex, layoutAtom, inputInfo, resizeFunction, adjustAllIndices){
-
-        this.#resizeFunction = resizeFunction;
-        this.#adjustAllIndices = adjustAllIndices;
+    constructor(startByteIndex, layoutAtom, inputInfo, resizeFunction){
 
         this.#datumByteSize = layoutAtom.arguments.reduce((acc, el) => inputInfo[el].size*(typeInfo[inputInfo[el].type].bitSize/8.0) + acc , 0)
 
         let size =  layoutAtom.opts.size ?? 100; // TODO: this needs to be thrown out??
+
+        this.#resizeFunction = resizeFunction;
         
         if(layoutAtom.repeatType === 'center' && size % 2 === 1){
             size = size + 1; // even sizes only for center repeat....
@@ -424,7 +384,7 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
 
     }
 
-    #shiftByteIndices(amount){
+    shiftByteIndices(amount){
         this.#startByteIndex = this.#startByteIndex + amount;
         this.#endByteIndex = this.#endByteIndex + amount;
         this.#dataStartByteIndex = this.#dataStartByteIndex + amount;
@@ -432,7 +392,7 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
     }
 
     // these adjust the indices of this 
-    #checkResizePrepend(numberOfBytes){
+    checkResizePrepend(numberOfBytes){
 
         if(numberOfBytes % this.#datumByteSize){
             throw new Error("FAIL(INTERNAL): Number of Bytes requested to add to this view is not divisible by the views datum Byte size!");
@@ -441,21 +401,19 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         let newDataStart = this.#dataStartByteIndex - numberOfBytes;
         
         if(newDataStart < this.#startByteIndex){
-            let resizeShiftAmount = this.#calculateResizeAmount(this.#startByteIndex - newDataStart);
+            let resizeShiftAmount = this.calculateResizeAmount(this.#startByteIndex - newDataStart);
 
             this.#dataStartByteIndex = this.#dataStartByteIndex + resizeShiftAmount;
             this.#dataEndByteIndex = this.#dataEndByteIndex + resizeShiftAmount;
             this.#endByteIndex = this.#endByteIndex + resizeShiftAmount;
 
-            this.#adjustAllIndices(this, resizeShiftAmount);
-
-            return false;
+            return resizeShiftAmount;
         }
 
-        return true;
+        return null;
     }
 
-    #checkResizeAppend(numberOfBytes){
+    checkResizeAppend(numberOfBytes){
 
         if(numberOfBytes % this.#datumByteSize){
             throw new Error("FAIL(INTERNAL): Number of bytes requested to add to this view is not divisible by the views datum byte size!");
@@ -464,18 +422,16 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         let newDataEnd = this.#dataEndByteIndex + numberOfBytes;
         
         if(newDataEnd > this.#endByteIndex){
-            let resizeShiftAmount = this.#calculateResizeAmount(newDataEnd - this.#endByteIndex); // thinking about thos write indices...
+            let resizeShiftAmount = this.calculateResizeAmount(newDataEnd - this.#endByteIndex); // thinking about thos write indices...
             this.#endByteIndex = this.#endByteIndex + resizeShiftAmount;
 
-            this.#adjustAllIndices(this, resizeShiftAmount);
-
-            return false;
+            return resizeShiftAmount;
         }
 
-        return true;
+        return null;
     }
 
-    #adjustWriteIndexPrepend(numberOfBytes){
+    adjustWriteIndexPrepend(numberOfBytes){
 
         if(numberOfBytes % this.#datumByteSize){
             throw new Error("FAIL(INTERNAL): Number of bytes requested to add to this view is not divisible by the views datum byte size!"); // might only be needed for dev
@@ -491,7 +447,7 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         return true
     }
 
-    #adjustWriteIndexAppend(numberOfBytes){
+    adjustWriteIndexAppend(numberOfBytes){
 
         if(numberOfBytes % this.#datumByteSize){
             throw new Error("FAIL(INTERNAL): Number of bytes requested to add to this view is not divisible by the views datum byte size!"); // might only be needed for dev
@@ -508,7 +464,7 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         return true;
     }
 
-    #calculateResizeAmount(neededShiftAmount){
+    calculateResizeAmount(neededShiftAmount){
         let increasedByteAmount = 0;
 
         while(increasedByteAmount < neededShiftAmount){ // TODO: is this really necessary??
