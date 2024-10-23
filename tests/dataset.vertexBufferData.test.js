@@ -327,12 +327,12 @@ test("Test datastore append on a vertex buffer dataStore, same layout, append un
 
   dataset.appendData(data, [GL.repeat('x', 'y')]);
 
-  expect(gl.gl.tests_buffers.length).toBe(1);
-  expect(gl.gl.tests_buffers[0].byteLength).toBe(1600);
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(1600);
 
 
   let reconstructedData = [];
-  let view = new DataView(gl.gl.tests_buffers[0])
+  let view = new DataView(gl.gl.tests_getNonNullBuffers()[0])
 
   for(let i = 0; i < 8*105; i = i + 4){
     reconstructedData.push(view.getFloat32(i, true))
