@@ -159,6 +159,11 @@ export default class FakeGL{
 
     }
 
+
+    tests_getNonNullBuffers(){
+        return this.#buffers.filter(el => el !== null);
+    }
+
     get tests_buffers(){
         return this.#buffers;
     }
