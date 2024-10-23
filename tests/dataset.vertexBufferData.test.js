@@ -344,5 +344,38 @@ test("Test datastore append on a vertex buffer dataStore, same layout, append un
 
 
 
+test("Test datastore append on a vertex buffer dataStore end repeat layout, data has same layout", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.endRepeat('x', 'y')] )]
+  });
+
+  let data = [1,2,3,4];
+
+  dataset.appendData(data, [GL.repeat('x', 'y')]);
+
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(1600);
+
+
+  let reconstructedData = [];
+  let view = new DataView(gl.gl.tests_getNonNullBuffers()[0])
+
+  for(let i = 800; i < (800 + 8*2) ; i = i + 4){
+    reconstructedData.push(view.getFloat32(i, true))
+  }
+
+  expect(reconstructedData).toEqual([1,2,3,4]);
+
+});
+
+
 
 
