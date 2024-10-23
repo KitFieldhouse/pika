@@ -419,4 +419,39 @@ test("Test datastore append on a vertex buffer dataStore with start and end repe
 
 
 
+test("Test datastore append on a vertex buffer dataStore with center repeat layout", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.centerRepeat('x','y')] )]
+  });
+
+  let data = [1,2,3,4];
+
+  dataset.appendData(data, [GL.repeat('x','y')]);
+
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(800);
+
+
+  let reconstructedData = []
+  let view = new DataView(gl.gl.tests_getNonNullBuffers()[0])
+
+  for(let i = 400; i < (400 + 8*2) ; i = i + 4){
+    reconstructedData.push(view.getFloat32(i, true))
+  }
+
+
+  expect(reconstructedData).toEqual([1,2,3,4]);
+
+});
+
+
+
 
