@@ -299,7 +299,46 @@ test("Test datastore append on several vertex buffer dataStores, complex layout,
   expect(Array.from(new Float32Array(gl.gl.tests_buffers[1].slice(0, 12*2)))).toEqual([1,2,3,4,5,6]);
   expect(Array.from(new Float32Array(gl.gl.tests_buffers[2].slice(0, 4*2)))).toEqual([9,8]);
 
-  // expect();
+});
+
+
+test("Test datastore append on a vertex buffer dataStore, same layout, append until resize", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )]
+  });
+
+  let data = [];
+
+  for(let i = 0; i < 105; i++){
+    data.push(i, -i);
+  }
+
+
+  expect(gl.gl.tests_buffers.length).toBe(1);
+  expect(gl.gl.tests_buffers[0].byteLength).toBe(800);
+
+  dataset.appendData(data, [GL.repeat('x', 'y')]);
+
+  expect(gl.gl.tests_buffers.length).toBe(1);
+  expect(gl.gl.tests_buffers[0].byteLength).toBe(1600);
+
+
+  let reconstructedData = [];
+  let view = new DataView(gl.gl.tests_buffers[0])
+
+  for(let i = 0; i < 8*105; i = i + 4){
+    reconstructedData.push(view.getFloat32(i, true))
+  }
+
+  expect(reconstructedData).toEqual(data);
 
 });
 
