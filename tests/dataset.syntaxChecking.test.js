@@ -6,9 +6,9 @@ import Layout from '../src/data/layout.js';
 // mock the constructor of VertexBuffer so that we don't actually end up creating any VertexBuffers....
 
 var mockConstructor;
-var mockDoAppend = jest.fn(() => null);
+var mockDoAdd = jest.fn(() => null);
 var mockSizeAppend = jest.fn(x => {
-  return {pointsAdded: 0, doAppend: mockDoAppend}
+  return {pointsAdded: 0, doAdd: mockDoAdd}
 })
 
 jest.mock('../src/buffer/vertexBuffer.js', () => {
@@ -25,7 +25,7 @@ jest.mock('../src/buffer/vertexBuffer.js', () => {
 beforeEach(() => {
   // Clear all instances and calls to constructor and all methods:
   mockConstructor.mockClear();
-  mockDoAppend.mockClear();
+  mockDoAdd.mockClear();
   mockSizeAppend.mockClear();
 });
 
@@ -226,7 +226,7 @@ test("Test that layouts are constructed and cached for dataSets", () =>{
 
   expect(Object.keys(dataset.cachedLayouts).length).toBe(1);
   expect(mockSizeAppend.mock.calls).toHaveLength(1);
-  expect(mockDoAppend.mock.calls).toHaveLength(1);
+  expect(mockDoAdd.mock.calls).toHaveLength(1);
 
   expect(layoutToTestAgainst.isSameLayout(mockSizeAppend.mock.lastCall[1])).toBe(true);
 
@@ -236,7 +236,7 @@ test("Test that layouts are constructed and cached for dataSets", () =>{
 
   expect(Object.keys(dataset.cachedLayouts).length).toBe(2);
   expect(mockSizeAppend.mock.calls).toHaveLength(2);
-  expect(mockDoAppend.mock.calls).toHaveLength(2);
+  expect(mockDoAdd.mock.calls).toHaveLength(2);
   
   expect(layoutToTestAgainst.isSameLayout(mockSizeAppend.mock.lastCall[1])).toBe(false);
   expect(newLayoutToTestAgainst.isSameLayout(mockSizeAppend.mock.lastCall[1])).toBe(true);
