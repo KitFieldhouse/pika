@@ -17,14 +17,16 @@ class TransformInputGetIterator{
     #inputGetIterator;
     #unraveledData;
 
+    #rearrangedData = [];
+
     #indexTransformer
 
     #dataLength = 0;
-    #usedIndices = {}; // object for quick lookup??
-    #dataIndex = 0;
 
     #accumulator = null
     #input
+
+    #iterator;
 
     constructor(input, inputGetIterator, indexTransformer){
 
@@ -35,44 +37,43 @@ class TransformInputGetIterator{
         this.#dataLength = this.#unraveledData.length;
 
         this.#indexTransformer = indexTransformer;
+
+        for(let i = 0; i < this.#dataLength; i++){
+            let val = this.#unraveledData[i];
+
+            let transformerResult = this.#indexTransformer(i, val, this.#dataLength, this.#accumulator);
+
+            let transformedIndex;
+    
+            if(transformerResult.length === 2){
+                transformedIndex = transformerResult[0];
+                this.#accumulator = transformerResult[1]
+            }else{
+                transformedIndex = transformerResult;
+            }
+
+            if(transformedIndex < 0 || transformedIndex >= this.#dataLength){
+                throw new Error(`FAIL: Given index transformer for input ${this.#input} has mapped an index to a value outside of the bounds [0, dataLength - 1]. Value: ${transformedIndex}`);
+            }
+
+            if(this.#rearrangedData[transformedIndex]){
+                throw new Error(`FAIL: Given index transformer for input ${this.#input} has mapped two different indices to the same index, this is not allowed`);
+            }
+
+            this.#rearrangedData[transformedIndex] = val;
+    
+        }
+
+        this.#iterator = this.#rearrangedData[Symbol.iterator]();
+
     }
 
     [Symbol.iterator]() {
-
-        return this;
+        return this.#rearrangedData[Symbol.iterator]();
     };
 
     next(){
-
-        if(this.#dataIndex === this.#dataLength){
-            return {done: true}
-        }
-
-        let transformerResult = this.#indexTransformer(this.#dataIndex, this.#unraveledData[this.#dataIndex], this.#dataLength, this.#accumulator);
-
-        let transformedIndex;
-
-        if(transformerResult.length === 2){
-            transformedIndex = transformerResult[0];
-            this.#accumulator = transformerResult[1];
-        }else{
-            transformedIndex = transformerResult;
-        }
-
-        if(this.#usedIndices[transformedIndex]){
-            throw new Error(`FAIL: Given index transformer for input ${this.#input} has mapped two different indices to the same index, this is not allowed`);
-        }
-
-        if(transformedIndex < 0 || transformedIndex >= this.#dataLength){
-            throw new Error(`FAIL: Given index transformer for input ${this.#input} has mapped an index to a value outside of the bounds [0, dataLength - 1]. Value: ${transformedIndex}`);
-        }
-
-
-        this.#usedIndices[transformedIndex] = true;
-        this.#dataIndex++;
-
-        return {done: false, value: this.#unraveledData[transformedIndex]};
-
+        return this.#iterator.next();
     }
 
 }
