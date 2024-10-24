@@ -60,7 +60,7 @@ class VertexBuffer{
         for(let i = 0; i < dataList.length; i++){
             data = dataList[i];
 
-            if(data == null){
+            if(data == null || data.length === 0){
                 continue
             }
 
@@ -123,30 +123,58 @@ class VertexBuffer{
         // from its source without performing any unwrapping
 
         let translatedDataSets = []; // array of objects of the form {data: [], pts: <number of points>}
+        let numberOfDirectCopies = 0;
+
+
+        if(opts && opts.inputsToAdd){
+            for(let i = 0; i < this.#layoutAtoms.length; i++){
+
+                let layoutAtom = this.#layoutAtoms[i];
+                let argsInInputsToAdd = layoutAtom.arguments.filter(el => opts.inputsToAdd.includes(el));
+
+                if(argsInInputsToAdd.length === 0){
+                    translatedDataSets[i] = [];
+                }else if(argsInInputsToAdd.length !== layoutAtom.arguments.length){
+                    throw new Error("FAIL: VertexBuffer requires that all inputs in a layout atom are either all effected by the prepend/append operation or none are");
+                }
+            }
+        }
 
         if(!opts.skipCopyMatching){
-            translatedDataSets = this.#layoutAtoms.map(lel => {
 
-                if(!this.#atMostOneDataLayoutForOneInput(lel, layout)){
-                    return null
+            for(let i = 0; i < this.#layoutAtoms.length; i++){ // TODO: still need to get into buffer mode!! (not sure what this todo means...)
+
+                if(translatedDataSets[i]){
+                    continue;
                 }
 
-                let matchingLTFR = layout.loneTopFlatRepeats.find(del => this.#canDirectCopy(del, lel));
+                let layoutAtom = this.#layoutAtoms[i];
+
+                if(!this.#atMostOneDataLayoutForOneInput(layoutAtom, layout)){
+                    translatedDataSets[i] = null;
+                    continue;
+                }
+
+                let matchingLTFR = layout.loneTopFlatRepeats.find(LTFRAtom => this.#canDirectCopy(LTFRAtom, layoutAtom));
                 let directCopyCandidate = matchingLTFR? matchingLTFR.getter(data): null;
 
-                return directCopyCandidate && !(directCopyCandidate instanceof Array) ? {data: directCopyCandidate, pts: matchingLTFR.size(data)} : null; // TODO: still need to get into buffer mode!!
-            });
+                if(directCopyCandidate && !(directCopyCandidate instanceof Array)){
+                    numberOfDirectCopies++;
+                    translatedDataSets[i] = {data: directCopyCandidate, pts: matchingLTFR.size(data)}
+                }else{
+                    translatedDataSets[i] = null;
+                } 
+
+            }
         }
 
           // TODO: there is probably some things I can do to increase the time efficiency of sizing non-flat repeats.... ??????
 
-        let numberOfDirectCopies = 0;
         
         for(let i = 0; i < this.#layoutAtoms.length; i++){
             if(!translatedDataSets[i]){
                 translatedDataSets[i] = this.#repackData(this.#layoutAtoms[i], layout, data, opts);
             }else{
-                numberOfDirectCopies++;
                 continue;
             }
         }
