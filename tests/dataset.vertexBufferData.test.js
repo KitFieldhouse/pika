@@ -633,33 +633,33 @@ test("Test datastore append with input index transformer, index transformer maps
 
 
 
-// test("Test datastore append with input index transformer", () => {
-//   const gl = new GL(fakeCanvas);
+test("Test datastore append with input index transformer", () => {
+  const gl = new GL(fakeCanvas);
 
-//   let inputs = {
-//     y: {name: 'y', size: 1, type: 'float'},
-//     x: {name: 'x', size: 1, type: 'float'}
-//   };
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
 
-//   let dataset = gl.createDataSet({
-//     inputs: Object.values(inputs),
-//     layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )]
-//   });
-
-
-//   let data = [1,2,3,4]
-
-//   dataset.appendData(data, [GL.repeat('x', 'y')], {inputsToAdd: ['x', 'y'], indexTransformers: {x: (idx, val, len, acc) => len - idx - 1}});
-
-//   expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
-//   expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(800);
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )]
+  });
 
 
-//   let reconstructedData = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(0,16)));
+  let data = [1,2,3,4]
 
-//   expect(reconstructedData).toEqual([3,2,1,4]);
+  dataset.appendData(data, [GL.repeat('x', 'y')], {inputsToAdd: ['x', 'y'], indexTransformers: {x: (idx, val, len, acc) => len - idx - 1}});
 
-// });
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(800);
+
+
+  let reconstructedData = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(0,16)));
+
+  expect(reconstructedData).toEqual([3,2,1,4]);
+
+});
 
 
 
