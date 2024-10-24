@@ -113,7 +113,7 @@ class VertexBuffer{
         return this.sizeDataAdd(dataSource, layout, data, false ,opts)
     }
 
-    sizeDataAdd(dataSource, layout, data, isAppend ,opts){
+    sizeDataAdd(dataSource, layout, data, isAppend ,opts = {}){
 
         if(!acceptedDataSources.includes(dataSource)){
             throw new Error(`FAIL: VertexBuffer cannot accept a data source of ${dataSource}. \n Accepted sources: ${JSON.stringify(acceptedDataSources)}`);
@@ -125,8 +125,7 @@ class VertexBuffer{
         let translatedDataSets = []; // array of objects of the form {data: [], pts: <number of points>}
         let numberOfDirectCopies = 0;
 
-
-        if(opts && opts.inputsToAdd){
+        if(opts.inputsToAdd){
             for(let i = 0; i < this.#layoutAtoms.length; i++){
 
                 let layoutAtom = this.#layoutAtoms[i];
@@ -142,13 +141,22 @@ class VertexBuffer{
 
         if(!opts.skipCopyMatching){
 
-            for(let i = 0; i < this.#layoutAtoms.length; i++){ // TODO: still need to get into buffer mode!! (not sure what this todo means...)
+            atomLoop: for(let i = 0; i < this.#layoutAtoms.length; i++){ // TODO: still need to get into buffer mode!! (not sure what this todo means...)
 
                 if(translatedDataSets[i]){
                     continue;
                 }
 
                 let layoutAtom = this.#layoutAtoms[i];
+
+                if(opts.indexTransformers){
+                    for(let arg of layoutAtom.arguments){
+                        if(opts.indexTransformers[arg]){
+                            translatedDataSets[i] = null;
+                            continue atomLoop;
+                        }
+                    }
+                }
 
                 if(!this.#atMostOneDataLayoutForOneInput(layoutAtom, layout)){
                     translatedDataSets[i] = null;
@@ -186,7 +194,7 @@ class VertexBuffer{
 
     }
 
-    #repackData(layoutAtom, dataLayout, data, opts){
+    #repackData(layoutAtom, dataLayout, data, opts = {}){
 
         if(!this.#allInputsAreInDataLayout(layoutAtom, dataLayout)){
             if(this.#noInputsAreInDataLayout(layoutAtom, dataLayout)){
@@ -206,7 +214,7 @@ class VertexBuffer{
         let buffer = new ArrayBuffer(VertexBuffer.temporaryArrayBufferRepeats*datumByteSize);
         let view = new DataView(buffer);
         let views = [view];
-        let iterators = layoutAtom.arguments.map(el => dataLayout.createInputIterator(el, data));
+        let iterators = layoutAtom.arguments.map(el => dataLayout.createInputIterator(el, data, opts.indexTransformers && opts.indexTransformers[el]));
 
         let allDone = false;
         let offset = 0;

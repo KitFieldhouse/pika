@@ -11,6 +11,72 @@ const root = {getter: rootGetter, isRepeat: false};
 
 const inputKeys = ["name", "size", "type", "normalized"]
 
+
+class TransformInputGetIterator{
+
+    #inputGetIterator;
+    #unraveledData;
+
+    #indexTransformer
+
+    #dataLength = 0;
+    #usedIndices = {}; // object for quick lookup??
+    #dataIndex = 0;
+
+    #accumulator
+    #input
+
+    constructor(input, inputGetIterator, indexTransformer){
+
+        this.#input = input;
+
+        this.#inputGetIterator = inputGetIterator;
+        this.#unraveledData = Array.from(this.#inputGetIterator);
+        this.#dataLength = this.#unraveledData.length;
+
+        this.#indexTransformer = indexTransformer;
+    }
+
+    [Symbol.iterator]() {
+
+        return this;
+    };
+
+    next(){
+
+        if(this.#dataIndex === this.#dataLength){
+            return {done: true}
+        }
+
+        let transformerResult = this.#indexTransformer(this.#dataIndex, this.#unraveledData[this.#dataIndex], this.#dataLength, this.#accumulator);
+
+        let transformedIndex;
+
+        if(transformerResult.length === 2){
+            transformedIndex = transformerResult[0];
+            this.#accumulator = transformerResult[1];
+        }else{
+            transformedIndex = transformerResult;
+        }
+
+        if(this.#usedIndices[transformedIndex]){
+            throw new Error(`FAIL: Given index transformer for input ${this.#input} has mapped two different indices to the same index, this is not allowed`);
+        }
+
+        if(transformedIndex < 0 || transformedIndex >= this.#dataLength){
+            throw new Error(`FAIL: Given index transformer for input ${this.#input} has mapped an index to a value outside of the bounds [0, dataLength - 1]. Value: ${transformedIndex}`);
+        }
+
+
+        this.#usedIndices[transformedIndex] = true;
+        this.#dataIndex++;
+
+        return {done: false, value: this.#unraveledData[transformedIndex]};
+
+    }
+
+}
+
 class InputGetIterator{
 
     #rootNode;
@@ -569,13 +635,17 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
     }
 
-    createInputIterator(input, data){
+    createInputIterator(input, data, indexTransform = null){
 
         if(!this.#getters[input]){
             throw new Error(`FAIL: This layout does not have data related to input ${input}`);
         }
 
-        return new InputGetIterator(data, this.#getters[input].tree);
+        if(!indexTransform){
+            return new InputGetIterator(data, this.#getters[input].tree);
+        }
+
+        return new TransformInputGetIterator(input, new InputGetIterator(data, this.#getters[input].tree), indexTransform);
 
     }
 
