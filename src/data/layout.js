@@ -23,7 +23,7 @@ class TransformInputGetIterator{
     #usedIndices = {}; // object for quick lookup??
     #dataIndex = 0;
 
-    #accumulator
+    #accumulator = null
     #input
 
     constructor(input, inputGetIterator, indexTransformer){
