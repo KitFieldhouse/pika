@@ -526,6 +526,69 @@ test("Test datastore prepend on a vertex buffer dataStore with end repeat layout
 
 
 
+test("Test datastore append on a vertex buffer dataStore, manually selecting which inputs to operate on throws error if inputs do not  exactly span atoms", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  let dataXY = [1,2,3,4];
+  let dataWZ = [-1,-2,-3,-4];
+
+  let data = [...dataXY, ...dataWZ]
+
+  expect( () => dataset.appendData(data, [GL.repeat('x', 'y'), GL.repeat('w', 'z')], {inputsToAdd: ['x']})).toThrow("VertexBuffer requires that all inputs in a layout atom are either all effected by the prepend/append operation or none are");
+  expect( () => dataset.prependData(data, [GL.repeat('x', 'y'), GL.repeat('w', 'z')], {inputsToAdd: ['w', 'y']})).toThrow("VertexBuffer requires that all inputs in a layout atom are either all effected by the prepend/append operation or none are");
+});
+
+
+
+
+test("Test datastore append and prepend on a vertex buffer dataStore, manually selecting which inputs to operate on", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  let dataXY = [1,2,3,4];
+  let dataWZ = [-1,-2,-3,-4];
+
+  let data = [...dataXY, ...dataWZ]
+
+  dataset.appendData(data, [GL.repeat('x', 'y'), GL.repeat('w', 'z')], {inputsToAdd: ['x', 'y']});
+  dataset.prependData(data, [GL.repeat('x', 'y'), GL.repeat('w', 'z')], {inputsToAdd: ['w', 'z']});
+
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(1600);
+
+
+  let reconstructedDataXY = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(0,16)));
+  let reconstructedDataWZ = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(1600 - 16)));
+
+  expect(reconstructedDataXY).toEqual(dataXY);
+  expect(reconstructedDataWZ).toEqual(dataWZ);
+
+});
+
+
 
 
 
