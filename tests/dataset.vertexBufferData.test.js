@@ -590,6 +590,80 @@ test("Test datastore append and prepend on a vertex buffer dataStore, manually s
 
 
 
+test("Test datastore append with input index transformer, index transformer maps outside of valid range", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )]
+  });
+
+
+  let data = [1,2,3,4]
+
+  expect( () => dataset.appendData(data, [GL.repeat('x', 'y')], {inputsToAdd: ['x', 'y'], indexTransformers: {x: (idx, val, len, acc) => len + idx}})).toThrow("has mapped an index to a value outside of the bounds");
+
+});
+
+
+test("Test datastore append with input index transformer, index transformer maps two indices to the same index", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )]
+  });
+
+
+  let data = [1,2,3,4]
+
+  expect( () => dataset.appendData(data, [GL.repeat('x', 'y')], {inputsToAdd: ['x', 'y'], indexTransformers: {x: (idx, val, len, acc) => 0}})).toThrow("has mapped two different indices to the same index, this is not allowed");
+
+});
+
+
+
+test("Test datastore append with input index transformer", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )]
+  });
+
+
+  let data = [1,2,3,4]
+
+  dataset.appendData(data, [GL.repeat('x', 'y')], {inputsToAdd: ['x', 'y'], indexTransformers: {x: (idx, val, len, acc) => len - idx - 1}});
+
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(800);
+
+
+  let reconstructedData = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(0,16)));
+
+  expect(reconstructedData).toEqual([3,2,1,4]);
+
+});
+
+
+
+
 
 
 
