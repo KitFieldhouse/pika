@@ -103,6 +103,41 @@ test("Test datastore append on a vertex buffer dataStore, same layout", () => {
 });
 
 
+test("Test datastore append on a nulti-vertex buffer data store, only one vertex buffer effected", () => {
+  const gl = new GL(fakeCanvas);
+
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer([GL.repeat('x')]), GL.VertexBuffer([GL.repeat('y')])]
+  });
+
+  let data = [1,2,3,4]
+
+  dataset.appendData(data, [GL.repeat('x')]);
+
+  expect(gl.gl.tests_buffers.length).toBe(2);
+  expect(gl.gl.tests_buffers[0].byteLength).toBe(400);
+
+
+  let reconstructedData = [];
+  let view = new DataView(gl.gl.tests_buffers[0])
+
+  for(let i = 0; i < 16; i = i + 4){
+    reconstructedData.push(view.getFloat32(i, true))
+  }
+
+  expect(reconstructedData).toEqual([1,2,3,4]);
+
+});
+
+
+
 
 test("Test datastore append on a vertex buffer dataStore, different layout", () => {
   const gl = new GL(fakeCanvas);
