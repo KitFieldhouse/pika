@@ -784,7 +784,11 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         return calculateGetterDim(getter.tree, 0);
     }
 
-    get inputs(){
+    usesInput(input){ // checks if the provided input is actually used....
+        return !!this.#atomics[input];
+    }
+
+    get inputs(){ // these may not be all USED inputs, just the inputs that have been defined for this layout
         return Object.assign({}, this.#inputs);
     }
 
