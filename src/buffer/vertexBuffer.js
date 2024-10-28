@@ -16,6 +16,8 @@ class VertexBuffer{
     #layoutAtoms;
     #inputInfo;
 
+    #usedInputs = [];
+
     static temporaryArrayBufferRepeats = 1000; // for sizing array buffers that will be filled with unwrapped data
 
     constructor(layoutAtoms, inputInfo, gl, initialData = null, opts = {}){
@@ -33,6 +35,8 @@ class VertexBuffer{
             startByteIndex = bufferView.endByteIndex;
             return bufferView; // TODO: why did I do Object.assign here??
         });
+
+        layoutAtoms.forEach(el => this.#usedInputs.push(...el.arguments));
 
         this.#buffer = this.#createEmptyBuffer(this.bufferByteSize);
     }
@@ -119,7 +123,22 @@ class VertexBuffer{
             throw new Error(`FAIL: VertexBuffer cannot accept a data source of ${dataSource}. \n Accepted sources: ${JSON.stringify(acceptedDataSources)}`);
         }
 
-        // first check to see if we have any lone top flat repeats that match the layout atoms for this vertex buffer. If so, we can simply just copy the data 
+        //first check to see if the layout for the data actually contains the inputs contained in the vertex buffer
+
+        let layoutUsesAInput = false
+
+        for(let usedInput of this.#usedInputs){
+            if(layout.usesInput(usedInput)){
+                layoutUsesAInput = true;
+                break;
+            }
+        }
+
+        if(!layoutUsesAInput){
+            return {pointsAdded: [0], doAdd: () => null, numberOfDirectCopies: 0}
+        }
+
+        // now check to see if we have any lone top flat repeats that match the layout atoms for this vertex buffer. If so, we can simply just copy the data 
         // from its source without performing any unwrapping
 
         let translatedDataSets = []; // array of objects of the form {data: [], pts: <number of points>}
