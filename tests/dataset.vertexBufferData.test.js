@@ -87,6 +87,68 @@ test("Test that dataStore will throw an error when you are attempting to add dat
 
 });
 
+
+test("Test that dataStore will throw if all inputs in an atom are not given explicit append/prepend instructions of one of the inputs is", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )]
+  });
+
+  let data = [1,2,3,4]
+
+  expect(() => dataset.addData(data, [GL.repeat('x','y')], {"x": 'append'})).toThrow("If an input is given an explicit add method, each input that it is in a layout atom with said input also needs to have an explicit add method");
+
+});
+
+
+
+test("Test that dataStore will throw when inputs from the same layout atom are given conflicting explicit prepend/append instructions", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )]
+  });
+
+  let data = [1,2,3,4]
+
+  expect(() => dataset.addData(data, [GL.repeat('x','y')], {x: 'append', y: 'prepend'})).toThrow("each input that is in a layout atom with said input also needs to have an explicit add method of the same type");
+
+});
+
+
+
+test("Test that dataStore will throw when given prepend.append instruction that isn't 'append' or 'prepend'", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )]
+  });
+
+  let data = [1,2,3,4]
+
+  expect(() => dataset.addData(data, [GL.repeat('x','y')], {x: 'appendo', y: 'appendo'})).toThrow("Unknown add method given:");
+
+});
+
 test("Test datastore append on a vertex buffer dataStore, same layout", () => {
   const gl = new GL(fakeCanvas);
 
