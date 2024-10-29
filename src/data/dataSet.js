@@ -177,7 +177,7 @@ class DataSet {
         return this.#doDataAdd(data, layoutDesc, false, true, {}, opts);
     }
 
-    addData(data, layoutDesc, addMethods, opts){
+    addData(data, layoutDesc, addMethods = {}, opts){
         return this.#doDataAdd(data, layoutDesc, false, false, addMethods, opts);
     }
 
