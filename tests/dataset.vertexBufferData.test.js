@@ -818,4 +818,81 @@ test("Test datastore append with input index transformer", () => {
 
 
 
+test("Test datastore addData without explicit prepend/append instructions", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  let dataXY = [1,2,3,4];
+  let dataWZ = [-1,-2,-3,-4];
+
+  let data = [...dataXY, ...dataWZ]
+
+  dataset.addData(data, [GL.repeat('x', 'y'), GL.repeat('w', 'z')]);
+
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(1600);
+
+
+  let reconstructedDataXY = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(0,16)));
+  let reconstructedDataWZ = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(1600 - 16)));
+
+  expect(reconstructedDataXY).toEqual(dataXY);
+  expect(reconstructedDataWZ).toEqual(dataWZ);
+
+});
+
+
+
+test("Test datastore addData with explicit prepend/append instructions", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  let dataXY = [1,2,3,4];
+  let dataWZ = [-1,-2,-3,-4];
+
+  let data = [...dataXY, ...dataWZ]
+
+  dataset.addData(data, [GL.repeat('x', 'y'), GL.repeat('w', 'z')], {w: "append", z: "append"});
+
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(2400);
+
+
+  let reconstructedDataXY = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(0,16)));
+  let reconstructedDataWZ = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(1600, 1600 + 16)));
+
+  expect(reconstructedDataXY).toEqual(dataXY);
+  expect(reconstructedDataWZ).toEqual(dataWZ);
+
+});
+
+
+
+
+
+
+
+
 
