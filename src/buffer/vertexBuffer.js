@@ -45,7 +45,7 @@ class VertexBuffer{
         return this.#bufferViews[this.#bufferViews.length - 1].endByteIndex;
     }
 
-    #addData(dataSource ,dataList, opts, isAppend = true){
+    #addData(dataSource , dataList, isAppendList, opts){
 
         if(dataList.length !== this.#bufferViews.length){
             throw new Error("FAIL: Provided data array must have a value for each subview of this buffer"); // is this needed??
@@ -68,9 +68,9 @@ class VertexBuffer{
                 continue
             }
 
-            byteShift = isAppend ? this.#bufferViews[i].checkResizeAppend(data.byteLength) :  this.#bufferViews[i].checkResizePrepend(data.byteLength)
+            byteShift = isAppendList[i] ? this.#bufferViews[i].checkResizeAppend(data.byteLength) :  this.#bufferViews[i].checkResizePrepend(data.byteLength)
 
-            if(!isAppend && i === 0 && byteShift != null){
+            if(!isAppendList[i] && i === 0 && byteShift != null){
                 startByteShift = byteShift;
             }
 
@@ -100,24 +100,29 @@ class VertexBuffer{
                 continue
             }
 
-            let writeIndex = isAppend ? view.dataEndByteIndex : (view.dataStartByteIndex - data.byteLength); 
+            let writeIndex = isAppendList[i] ? view.dataEndByteIndex : (view.dataStartByteIndex - data.byteLength); 
 
             this.#copyData(dataSource , writeIndex, data, 
-                isAppend ? () => view.adjustWriteIndexAppend(data.byteLength):
+                isAppendList[i] ? () => view.adjustWriteIndexAppend(data.byteLength):
                            () => view.adjustWriteIndexPrepend(data.byteLength));
         }
 
     } 
 
+    sizeAdd(dataSource, layout, data, addMethods, opts)
+    {
+        return this.sizeDataAdd(dataSource, layout, data, false, false, addMethods, opts)
+    }
+
     sizeAppend(dataSource, layout, data, opts){
-        return this.sizeDataAdd(dataSource, layout, data, true ,opts)
+        return this.sizeDataAdd(dataSource, layout, data, true, false, {}, opts)
     }
 
     sizePrepend(dataSource, layout, data, opts){
-        return this.sizeDataAdd(dataSource, layout, data, false ,opts)
+        return this.sizeDataAdd(dataSource, layout, data, false, true, {}, opts)
     }
 
-    sizeDataAdd(dataSource, layout, data, isAppend ,opts = {}){
+    sizeDataAdd(dataSource, layout, data, allAppend, allPrepend, addMethods, opts = {}){
 
         if(!acceptedDataSources.includes(dataSource)){
             throw new Error(`FAIL: VertexBuffer cannot accept a data source of ${dataSource}. \n Accepted sources: ${JSON.stringify(acceptedDataSources)}`);
@@ -138,9 +143,6 @@ class VertexBuffer{
             return {pointsAdded: [0], doAdd: () => null, numberOfDirectCopies: 0}
         }
 
-        // now check to see if we have any lone top flat repeats that match the layout atoms for this vertex buffer. If so, we can simply just copy the data 
-        // from its source without performing any unwrapping
-
         let translatedDataSets = []; // array of objects of the form {data: [], pts: <number of points>}
         let numberOfDirectCopies = 0;
 
@@ -151,12 +153,17 @@ class VertexBuffer{
                 let argsInInputsToAdd = layoutAtom.arguments.filter(el => opts.inputsToAdd.includes(el));
 
                 if(argsInInputsToAdd.length === 0){
-                    translatedDataSets[i] = [];
+                    translatedDataSets[i] = {data: null, pts: 0, isAppend: null};
                 }else if(argsInInputsToAdd.length !== layoutAtom.arguments.length){
                     throw new Error("FAIL: VertexBuffer requires that all inputs in a layout atom are either all effected by the prepend/append operation or none are");
                 }
             }
         }
+
+        
+        // now check to see if we have any lone top flat repeats that match the layout atoms for this vertex buffer. If so, we can simply just copy the data 
+        // from its source without performing any unwrapping
+
 
         if(!opts.skipCopyMatching){
 
@@ -187,7 +194,8 @@ class VertexBuffer{
 
                 if(directCopyCandidate && !(directCopyCandidate instanceof Array)){
                     numberOfDirectCopies++;
-                    translatedDataSets[i] = {data: directCopyCandidate, pts: matchingLTFR.size(data)}
+                    translatedDataSets[i] = {data: directCopyCandidate, pts: matchingLTFR.size(data), 
+                                                isAppend: this.#isAppendAddTypeForAtom(layoutAtom, addMethods, allAppend, allPrepend)}
                 }else{
                     translatedDataSets[i] = null;
                 } 
@@ -200,16 +208,16 @@ class VertexBuffer{
         
         for(let i = 0; i < this.#layoutAtoms.length; i++){
             if(!translatedDataSets[i]){
-                translatedDataSets[i] = this.#repackData(this.#layoutAtoms[i], layout, data, opts);
+                translatedDataSets[i] = {...this.#repackData(this.#layoutAtoms[i], layout, data, opts),
+                                        isAppend: this.#isAppendAddTypeForAtom(this.#layoutAtoms[i], addMethods, allAppend, allPrepend) };
             }else{
                 continue;
             }
         }
 
         return {pointsAdded: translatedDataSets.map(el => el.pts), 
-            doAdd: isAppend? () => this.#appendData(dataSource, translatedDataSets.map(el => el.data), opts ?? null) :
-                                () => this.#prependData(dataSource, translatedDataSets.map(el => el.data), opts ?? null)
-            , numberOfDirectCopies};
+            doAdd: () => this.#addData(dataSource , translatedDataSets.map(el => el.data), translatedDataSets.map(el => el.isAppend), opts ?? null), 
+            numberOfDirectCopies};
 
     }
 
@@ -217,7 +225,7 @@ class VertexBuffer{
 
         if(!this.#allInputsAreInDataLayout(layoutAtom, dataLayout)){
             if(this.#noInputsAreInDataLayout(layoutAtom, dataLayout)){
-                return {data: null, pts: 0};
+                return {data: null, pts: 0, isAppend: null};
             }else{
                 throw new Error("FAIL: VertexBuffer requires inputs grouped in the same repeat statement to have the same number of points!"); // TODO: improve error message
             }
@@ -307,7 +315,57 @@ class VertexBuffer{
             }
         }
 
-        return {data: finalBuffer, pts: finalByteSize/datumByteSize};
+        return {data: finalBuffer, pts: finalByteSize/datumByteSize, };
+
+    }
+
+    #isAppendAddTypeForAtom(layoutAtom, addMethods, allAppend, allPrepend){
+
+        if(allAppend && allPrepend){
+            throw new Error("FAIL(DEV): Both allAppend and allPrepend can not be asserted at the same time");
+        }
+
+        if(allAppend){
+            return true;
+        }
+
+        if(allPrepend){
+            return false;
+        }
+      
+        let args = layoutAtom.arguments;
+        let argsAddMethod = [];
+        args.forEach(el => addMethods[el]? argsAddMethod.push(addMethods[el]) : null);
+
+        if(argsAddMethod.length !== args && argsAddMethod.length !== 0){
+            throw new Error("FAIL: If an input is given an explicit add method, each input that it is in a layout atom with said input also needs to have an explicit add method");
+        }
+
+        if(argsAddMethod.length === 0){
+            if(layoutAtom.repeatType === "end"){
+                return false; // will prepend the data.....
+            }else{
+                return true
+            }
+        }
+
+        let methodCandidate = argsAddMethod[0];
+        
+        let nonMatchers = argsAddMethod.filter(el => el !== methodCandidate);
+
+        if(nonMatchers.length !== 0){
+            throw new Error("FAIL: When giving and explicit add method, each input that is in a layout atom with said input also needs to have an explicit add method of the same type");
+        }
+
+        if(methodCandidate === "prepend"){
+            return false;
+        }
+
+        if(methodCandidate === "append"){
+            return true;
+        }
+
+        throw new Error("FAIL: Unknown add method given: " + methodCandidate);
 
     }
 
@@ -357,13 +415,13 @@ class VertexBuffer{
 
     }
 
-    #appendData(dataSource, dataList, opts){ // data is in an array in order of which view it should go to.
-        this.#addData(dataSource, dataList, opts, true);
-    }
+    // #appendData(dataSource, dataList, opts){ // data is in an array in order of which view it should go to.
+    //     this.#addData(dataSource, dataList, opts, true);
+    // }
 
-    #prependData(dataSource, dataList, opts){
-        this.#addData(dataSource, dataList, opts, false);
-    }
+    // #prependData(dataSource, dataList, opts){
+    //     this.#addData(dataSource, dataList, opts, false);
+    // }
 
     #adjustAllIndices(startingIndex, byteAmount){
         for(let i = startingIndex; i < this.#bufferViews.length; i++){ // Adjust the indices of the contained buffer views as appropriate
