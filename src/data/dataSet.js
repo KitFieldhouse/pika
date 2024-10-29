@@ -170,14 +170,18 @@ class DataSet {
     // need to figure out generalizations of append/prepend for multi dim data.
 
     appendData(data, layoutDesc, opts){
-        return this.addData(data, layoutDesc, true, opts);
+        return this.#doDataAdd(data, layoutDesc, true, false, {}, opts);
     }
 
     prependData(data, layoutDesc, opts){
-        return this.addData(data, layoutDesc, false, opts);
+        return this.#doDataAdd(data, layoutDesc, false, true, {}, opts);
     }
 
-    addData(data, layoutDesc, isAppend , opts){
+    addData(data, layoutDesc, addMethods, opts){
+        return this.#doDataAdd(data, layoutDesc, false, false, addMethods, opts);
+    }
+
+    #doDataAdd(data, layoutDesc, allAppend, allPrepend, addMethods , opts){
 
         // check arguments.....
         if(!(layoutDesc instanceof Array)){
@@ -204,8 +208,7 @@ class DataSet {
 
         let layout = this.#processLayoutInput(layoutDesc, opts);
 
-        let effects = this.#dataStores.map(el => isAppend? el.sizeAppend(dataSource, layout, data, opts) : 
-                                                           el.sizePrepend(dataSource, layout, data, opts));
+        let effects = this.#dataStores.map(el => el.sizeDataAdd(dataSource, layout, data, allAppend, allPrepend, addMethods, opts));
 
         // do processing on number of points here!
 
