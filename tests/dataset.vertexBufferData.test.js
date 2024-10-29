@@ -28,6 +28,31 @@ test("Test that a vertex buffer dataStore can be initialized", () => {
 });
 
 
+test("Test that a vertex buffer dataStore can be initialized with initial data", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )],
+    initialData: {
+      data: [1,2,3,4,5,6],
+      layout: [GL.repeat('x', 'y')]
+    }
+  });
+
+  expect(gl.gl.tests_buffers.length).toBe(1);
+  expect(gl.gl.tests_buffers[0].byteLength).toBe(800);
+
+  expect(Array.from(new Float32Array(gl.gl.tests_buffers[0].slice(0, 24)))).toEqual([1,2,3,4,5,6]);
+
+});
+
+
 
 test("Test datastore append on a vertex buffer dataStore, throws error if not equal number of data points in the same layout atom", () => {
   const gl = new GL(fakeCanvas);

@@ -39,6 +39,10 @@ class VertexBuffer{
         layoutAtoms.forEach(el => this.#usedInputs.push(...el.arguments));
 
         this.#buffer = this.#createEmptyBuffer(this.bufferByteSize);
+
+        if(initialData){
+            this.sizeDataAdd(initialData.source, initialData.layout, initialData.data, false, false, {}, initialData.opts).doAdd();
+        }
     }
 
     get bufferByteSize(){
