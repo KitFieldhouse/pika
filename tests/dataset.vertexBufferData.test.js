@@ -68,7 +68,24 @@ test("Test datastore append on a vertex buffer dataStore, can append different a
 
 });
 
+test("Test that dataStore will throw an error when you are attempting to add data to an input but not to its layout atom-mate", () => {
+  const gl = new GL(fakeCanvas);
 
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )]
+  });
+
+  let data = [1,2,3,4]
+
+  expect(() => dataset.appendData(data, [GL.repeat('x')])).toThrow("VertexBuffer requires inputs grouped in the same repeat statement to have the same number of points");
+
+});
 
 test("Test datastore append on a vertex buffer dataStore, same layout", () => {
   const gl = new GL(fakeCanvas);
