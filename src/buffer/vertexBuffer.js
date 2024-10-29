@@ -324,7 +324,7 @@ class VertexBuffer{
         let argsAddMethod = [];
         args.forEach(el => addMethods[el]? argsAddMethod.push(addMethods[el]) : null);
 
-        if(argsAddMethod.length !== args && argsAddMethod.length !== 0){
+        if(argsAddMethod.length !== args.length && argsAddMethod.length !== 0){
             throw new Error("FAIL: If an input is given an explicit add method, each input that it is in a layout atom with said input also needs to have an explicit add method");
         }
 
