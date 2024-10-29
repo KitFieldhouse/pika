@@ -109,19 +109,6 @@ class VertexBuffer{
 
     } 
 
-    sizeAdd(dataSource, layout, data, addMethods, opts)
-    {
-        return this.sizeDataAdd(dataSource, layout, data, false, false, addMethods, opts)
-    }
-
-    sizeAppend(dataSource, layout, data, opts){
-        return this.sizeDataAdd(dataSource, layout, data, true, false, {}, opts)
-    }
-
-    sizePrepend(dataSource, layout, data, opts){
-        return this.sizeDataAdd(dataSource, layout, data, false, true, {}, opts)
-    }
-
     sizeDataAdd(dataSource, layout, data, allAppend, allPrepend, addMethods, opts = {}){
 
         if(!acceptedDataSources.includes(dataSource)){
@@ -321,9 +308,9 @@ class VertexBuffer{
 
     #isAppendAddTypeForAtom(layoutAtom, addMethods, allAppend, allPrepend){
 
-        if(allAppend && allPrepend){
-            throw new Error("FAIL(DEV): Both allAppend and allPrepend can not be asserted at the same time");
-        }
+        // if(allAppend && allPrepend){
+        //     throw new Error("FAIL(DEV): Both allAppend and allPrepend can not be asserted at the same time");
+        // }
 
         if(allAppend){
             return true;
