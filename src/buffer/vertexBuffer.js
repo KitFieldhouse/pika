@@ -16,6 +16,8 @@ class VertexBuffer{
     #layoutAtoms;
     #inputInfo;
 
+    #inputViewMap = {};
+
     #usedInputs = [];
 
     static temporaryArrayBufferRepeats = 1000; // for sizing array buffers that will be filled with unwrapped data
@@ -25,18 +27,19 @@ class VertexBuffer{
         this.#layoutAtoms = layoutAtoms;
         this.#inputInfo = inputInfo;
 
+        this.#resizeFunction = (opts && opts.resizeFunction) ? opts.resizeFunction : (repeatAmount, resizes) => repeatAmount*resizes;
+
         let startByteIndex = 0;
         let bufferView;
 
-        this.#resizeFunction = (opts && opts.resizeFunction) ? opts.resizeFunction : (repeatAmount, resizes) => repeatAmount*resizes;
-        
-        this.#bufferViews = layoutAtoms.map((el) =>{
-            bufferView = new SubBufferView(startByteIndex , el, inputInfo, this.#resizeFunction);
+        for(let layoutAtom of layoutAtoms){
+            bufferView = new SubBufferView(startByteIndex , layoutAtom , inputInfo, this.#resizeFunction);
             startByteIndex = bufferView.endByteIndex;
-            return bufferView; // TODO: why did I do Object.assign here??
-        });
+            this.#bufferViews.push(bufferView);
+            layoutAtom.arguments.forEach(el => this.#inputViewMap[el] = bufferView);
+        }
 
-        layoutAtoms.forEach(el => this.#usedInputs.push(...el.arguments));
+        this.#usedInputs = Object.keys(this.#inputViewMap);
 
         this.#buffer = this.#createEmptyBuffer(this.bufferByteSize);
 
