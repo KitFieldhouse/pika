@@ -35,6 +35,8 @@ class DataSet {
 
     #cachedLayouts = {};
 
+    #inputToStoreMap = {}
+
     constructor(inputs, layout, gl, initialData = null){
         this.#gl = gl;
 
@@ -164,7 +166,10 @@ class DataSet {
     }
 
     #addVertexBuffer(vbInputs, vbAtoms, initialData, opts){
-        this.#dataStores.push(new VertexBuffer(vbAtoms, this.#inputs, this.#gl, initialData ,opts));
+        let vertexBuffer = new VertexBuffer(vbAtoms, this.#inputs, this.#gl, initialData ,opts);
+        Object.keys(vbInputs).forEach(el => this.#inputToStoreMap[el] = vertexBuffer);
+
+        this.#dataStores.push(vertexBuffer);
     }
 
     // need to figure out generalizations of append/prepend for multi dim data.
@@ -248,6 +253,14 @@ class DataSet {
         // can do addition processing here...
 
         effects.forEach(el => el.doDelete());
+    }
+
+    numberOfPoints(input){
+        if(!this.#inputToStoreMap[input]){
+            return null;
+        }
+
+        return this.#inputToStoreMap[input].numberOfPoints(input);
     }
 
     #doDataAdd(data, layoutDesc, allAppend, allPrepend, addMethods , opts){
