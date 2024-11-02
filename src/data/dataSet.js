@@ -198,6 +198,11 @@ class DataSet {
             let input = inputs[i];
 
             if(typeof input === 'string' || typeof input === "symbol"){
+
+                if(!this.#inputs[input]){
+                    throw new Error(`FAIL: Input "${input}" is not known to this datastore`);
+                }
+
                 if(deleteInfoObj[input]){
                     throw new Error(`FAIL: Repeat argument for input ${input} in delete.`);
                 }
