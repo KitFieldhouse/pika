@@ -199,7 +199,10 @@ class VertexBuffer{
 
             deleteInfoForAtom = deleteInfoForAtom[0]; // choose the first since we just checked that they are all the same....
 
-            deleteAmounts.push(deleteInfoForAtom.amount || this.numberOfPoints(layoutAtom.arguments[0]));
+            let cappedAmount = deleteInfoForAtom.amount && 
+                               (deleteInfoForAtom.amount < this.numberOfPoints(layoutAtom.arguments[0]) ?deleteInfoForAtom.amount  : this.numberOfPoints(layoutAtom.arguments[0]));
+
+            deleteAmounts.push(cappedAmount || this.numberOfPoints(layoutAtom.arguments[0]));
 
             if(deleteInfoForAtom.side){
                 if(deleteInfoForAtom.side === "start"){
