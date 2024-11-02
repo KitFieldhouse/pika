@@ -181,6 +181,68 @@ class DataSet {
         return this.#doDataAdd(data, layoutDesc, false, false, addMethods, opts);
     }
 
+    delete(){
+        
+        this.#dataStores.forEach(el => el.delete());
+
+    }
+
+    deleteData(inputs){
+
+        // first we verify arguments and for string/symbol arguments transform them into an object
+
+        let deleteInfoObj = {};
+
+        for(let i = 0; i < inputs.length; i++){
+
+            let input = inputs[i];
+
+            if(typeof input === 'string' || typeof input === "symbol"){
+                if(deleteInfoObj[input]){
+                    throw new Error(`FAIL: Repeat argument for input ${input} in delete.`);
+                }
+                deleteInfoObj[input] = {input: input};
+                continue;
+            }
+
+            if(typeof input !== 'object'){
+                throw new Error("FAIL: Delete input either expects a list of input names (string/symbol) or objects");
+            }
+
+            if(!input.input){
+                throw new Error("FAIL: Delete input description object must include the name of the input to delete!");
+            }
+
+            if(input.input instanceof Array){
+                for(let name of input.input){
+                    if(deleteInfoObj[name]){
+                        throw new Error(`FAIL: Repeat argument for input ${input} in delete.`);
+                    }
+
+                    let copy = Object.assign({}, input);
+                    copy.input = name;
+
+                    deleteInfoObj[name] = copy;
+
+                }
+            }
+
+            if(deleteInfoObj[input.input]){
+                throw new Error(`FAIL: Repeat argument for input ${input} in delete.`);
+            }
+
+            deleteInfoObj[input] = input;
+        }
+
+        // now we pass this info to each dataStore for this dataSet
+
+        let effects = this.#dataStores.map(el => el.sizeDataDelete(deleteInfoObj));
+
+        // can do addition processing here...
+
+        effects.forEach(el => el.doDelete());
+    }
+
     #doDataAdd(data, layoutDesc, allAppend, allPrepend, addMethods , opts){
 
         // check arguments.....
