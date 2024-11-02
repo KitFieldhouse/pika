@@ -956,6 +956,17 @@ test("Test datastore addData with explicit prepend/append instructions", () => {
 
 
 
+/// THESE TESTS ARE FOR DELETING DATA
+
+// FIRST SOME SYNTAX CHECKS.....
+
+
+
+test("DataSet delete checks that arguments are not repeated...", () => {
+
+})
+
+
 
 
 

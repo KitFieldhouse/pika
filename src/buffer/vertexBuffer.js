@@ -642,8 +642,6 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
     #resizeFunction;
     #resizes = 0;
 
-    #sizeHistory = []; // left off here...
-
     constructor(startByteIndex, layoutAtom, inputInfo, resizeFunction){
 
         this.#datumByteSize = layoutAtom.arguments.reduce((acc, el) => inputInfo[el].size*(typeInfo[inputInfo[el].type].bitSize/8.0) + acc , 0)
