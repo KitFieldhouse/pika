@@ -230,13 +230,15 @@ class DataSet {
                     deleteInfoObj[name] = copy;
 
                 }
+
+                continue;
             }
 
             if(deleteInfoObj[input.input]){
                 throw new Error(`FAIL: Repeat argument for input ${input} in delete.`);
             }
 
-            deleteInfoObj[input] = input;
+            deleteInfoObj[input.input] = input;
         }
 
         // now we pass this info to each dataStore for this dataSet
