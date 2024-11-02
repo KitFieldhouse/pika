@@ -122,6 +122,18 @@ export default class FakeGL{
             throw new Error("FAIL(DEV): copyBufferSubData requires a buffer's store to be initialized first (I think...)");
         }
 
+        if(readOffset < 0){
+            throw new Error("FAIL(DEV): readOffset is negative! Value: " + readOffset)
+        }
+
+        if(writeOffset < 0){
+            throw new Error("FAIL(DEV): writeOffset is negative! Value: " + writeOffset)
+        }
+
+        if(size < 0){
+            throw new Error("FAIL(DEV): size is negative! Value: " + size)
+        }
+
         let readBuffer = this.#buffers[this.#bindings[readTarget]];
         let readView = this.#views[this.#bindings[readTarget]];
 
