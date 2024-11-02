@@ -750,7 +750,7 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
 
         this.#dataEndByteIndex = this.#dataEndByteIndex - numberOfBytes;
 
-        let shrinkAmount = this.calculateShrinkAmount(this.#dataEndByteIndex - this.#endByteIndex);
+        let shrinkAmount = this.calculateShrinkAmount(this.#endByteIndex - this.#dataEndByteIndex);
 
         if(shrinkAmount){
             this.#endByteIndex = this.#endByteIndex - shrinkAmount;
@@ -815,10 +815,8 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
             finalShrinkAmount = candidateShrinkAmount;
             this.#resizes = candidateResizes;
 
-
             if(this.#resizes === 0){
-                finalShrinkAmount = this.byteSize;
-                break;
+                return finalShrinkAmount
             }
 
             candidateShrinkAmount = candidateShrinkAmount + this.#datumByteSize*this.#resizeFunction(this.#repeatSize, candidateResizes);
