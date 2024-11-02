@@ -187,7 +187,7 @@ class DataSet {
 
     }
 
-    deleteData(inputs){
+    deleteData(...inputs){
 
         // first we verify arguments and for string/symbol arguments transform them into an object
 
