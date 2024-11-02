@@ -629,7 +629,7 @@ class VertexBuffer{
         if(!this.#inputViewMap[input]){
             return null
         }
-        return this.#inputViewMap[input].size; // as of now, all buffer views must contain the same number of points....
+        return this.#inputViewMap[input].dataSize;
     }
 
 }
@@ -854,6 +854,10 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
 
     get size(){
         return this.byteSize/this.#datumByteSize;
+    }
+
+    get dataSize(){
+        return this.dataByteSize/this.datumByteSize;
     }
 
     get datumByteSize(){
