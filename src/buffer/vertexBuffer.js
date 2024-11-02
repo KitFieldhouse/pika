@@ -544,7 +544,7 @@ class VertexBuffer{
     }
 
     #isDeleteInfoConsistent(listOfInfo){
-        let firstObj = listOfInfo;
+        let firstObj = listOfInfo[0];
 
         for(let info of listOfInfo){
             for(let key of deleteInfoKeys){
