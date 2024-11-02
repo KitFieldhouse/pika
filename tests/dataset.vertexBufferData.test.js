@@ -960,11 +960,149 @@ test("Test datastore addData with explicit prepend/append instructions", () => {
 
 // FIRST SOME SYNTAX CHECKS.....
 
+        //  deleteInfo is an object of objects of the form 
+        //  {<input>: {input: <name>, side: <'start', 'end'> -- should default to natural data flow, 
+        //  amount: <amount> -- should default to all, lazy: <true/false> -- default of false}, .......}
+
+
+
+test("DataSet delete checks that provided arguments are either string, symbol, or object with an input name", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  expect(() => dataset.deleteData(123)).toThrow("Delete input either expects a list of input names (string/symbol) or objects");
+})
+
+
+test("DataSet delete checks that provided arguments are either string, symbol, or object with an input name", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  expect(() => dataset.deleteData({flap: 10})).toThrow("Delete input description object must include the name of the input to delete!");
+})
+
+
+test("DataSet delete checks that arguments are actually inputs", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  expect(() => dataset.deleteData("g", "foo")).toThrow("is not known to this datastore");
+})
+
 
 
 test("DataSet delete checks that arguments are not repeated...", () => {
+  const gl = new GL(fakeCanvas);
 
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  expect(() => dataset.deleteData("x", "x")).toThrow("Repeat argument");
 })
+
+
+test("DataSet delete checks that arguments are not repeated, even for different calling signatures", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  expect(() => dataset.deleteData("x", {input: "x", amount: 10})).toThrow("Repeat argument");
+})
+
+
+
+test("VertexBuffer delete checks that inputs that are in a layout atom together are requested to delete together", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  expect(() => dataset.deleteData("x")).toThrow("FAIL: all inputs in a layout atom must be deleted together");
+});
+
+
+
+test("VertexBuffer delete checks that inputs that are in a layout atom together are given consistent delete info", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  expect(() => dataset.deleteData("x", {input: "y", amount: 1})).toThrow("delete info for inputs in the same layout atom must have the same values");
+});
+
+
+
 
 
 
