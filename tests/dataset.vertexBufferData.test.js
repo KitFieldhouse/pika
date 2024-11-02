@@ -1104,6 +1104,42 @@ test("VertexBuffer delete checks that inputs that are in a layout atom together 
 
 
 
+test("VertexBuffer deletes data", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  dataset.appendData([1,2,3,4,5,6], [GL.repeat('x', 'y')]);
+
+  dataset.deleteData('x', 'y');
+
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(1600);
+
+
+  let reconstructedDataXY = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(0,8*3)));
+
+  console.log(reconstructedDataXY)
+
+  expect(reconstructedDataXY).toEqual([0,0,0,0,0,0]);
+});
+
+
+
+
+
+
+
 
 
 

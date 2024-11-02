@@ -621,6 +621,10 @@ class VertexBuffer{
         return "VertexBuffer";
     }
 
+    get tests_views(){
+        return this.#bufferViews;
+    }
+
     numberOfPoints(input){
         if(!this.#inputViewMap[input]){
             return null
