@@ -351,6 +351,10 @@ class DataSet {
         return Object.assign({}, this.#cachedLayouts);
     }
 
+    get tests_dataStores(){
+        return this.#dataStores;
+    }
+
 }
 
 export default DataSet;
