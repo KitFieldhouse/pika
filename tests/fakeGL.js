@@ -126,14 +126,14 @@ export default class FakeGL{
         let readView = this.#views[this.#bindings[readTarget]];
 
         let writeBuffer = this.#buffers[this.#bindings[writeTarget]];
-        let writeView = this.#views[this.#bindings[readTarget]];
+        let writeView = this.#views[this.#bindings[writeTarget]];
 
         if(readOffset + size > readBuffer.byteLength){
-            throw new Error("FAIL(DEV): copyBufferSubData operation is trying to read past the end of the attached readBuffer");
+            throw new Error(`FAIL(DEV): copyBufferSubData operation is trying to read past the end of the attached readBuffer: length: ${readBuffer.byteLength}, readOffset: ${readOffset}, size: ${size}`);
         }
 
         if(writeOffset + size > writeBuffer.byteLength){
-            throw new Error("FAIL(DEV): copyBufferSubData operation is trying to read past the end of the attached writeBuffer");
+            throw new Error(`FAIL(DEV): copyBufferSubData operation is trying to write past the end of the attached writeBuffer: length: ${writeBuffer.byteLength}, writeOffset: ${writeOffset}, size: ${size}`);
         }
 
         for(let i = 0; i < size; i++){
