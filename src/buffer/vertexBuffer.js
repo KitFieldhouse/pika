@@ -61,8 +61,7 @@ class VertexBuffer{
 
         //TODO: see if this algo couldn't be optimized in some way.....
 
-        let startByteLength = this.bufferByteSize;
-        let startByteShift = 0;
+        let startingDataIndices = this.#bufferViews.map(el => [el.dataStartByteIndex, el.dataEndByteIndex]);
 
         let doesNotNeedResize = true;
         let data = null;
@@ -77,10 +76,6 @@ class VertexBuffer{
 
             byteShift = isAppendList[i] ? this.#bufferViews[i].checkResizeAppend(data.byteLength) :  this.#bufferViews[i].checkResizePrepend(data.byteLength)
 
-            if(!isAppendList[i] && i === 0 && byteShift != null){
-                startByteShift = byteShift;
-            }
-
             if(byteShift != null){
                 doesNotNeedResize = false;
                 this.#adjustAllIndices(i+1, byteShift);
@@ -90,7 +85,7 @@ class VertexBuffer{
 
         if(!doesNotNeedResize){
             let newBuffer = this.#createEmptyBuffer(this.bufferByteSize);
-            this.#gl_translateDataIntoBuffer(newBuffer, startByteLength, startByteShift);
+            this.#gl_translateDataIntoBuffer(newBuffer, startingDataIndices);
             this.#gl.gl.deleteBuffer(this.#buffer);
             this.#buffer = newBuffer;
             // TODO: once I incorporate VAO's, I will have to notify them here!
@@ -435,12 +430,22 @@ class VertexBuffer{
         indexUpdate(data.byteLength);
     }
 
-    #gl_translateDataIntoBuffer(target, copyLength, startByteShift){ // copies data from current buffer directly into the argument buffer. // THIS NEEDS REFACTORING....
+    #gl_translateDataIntoBuffer(target, originalIndices){ // copies data from current buffer directly into the argument buffer. // THIS NEEDS REFACTORING....
 
         this.#gl.gl.bindBuffer(this.#gl.gl.COPY_WRITE_BUFFER, target); // read from the supplied buffer and write to the current buffer
         this.#gl.gl.bindBuffer(this.#gl.gl.COPY_READ_BUFFER, this.#buffer);
 
-        this.#gl.gl.copyBufferSubData(this.#gl.gl.COPY_READ_BUFFER, this.#gl.gl.COPY_WRITE_BUFFER, 0, startByteShift, copyLength); // transfer the contents of supplied buffer to current buffer...
+        let originalStart = null;
+        let originalEnd = null;
+        let view = null;
+        let copySize = null;
+
+        for(let i = 0; i < this.#bufferViews.length; i++){
+            [originalStart, originalEnd] = originalIndices[i];
+            view = this.#bufferViews[i];
+            copySize = (view.dataEndByteIndex - view.dataStartByteIndex) < (originalEnd - originalStart)? (view.dataEndByteIndex - view.dataStartByteIndex) : (originalEnd - originalStart);
+            this.#gl.gl.copyBufferSubData(this.#gl.gl.COPY_READ_BUFFER, this.#gl.gl.COPY_WRITE_BUFFER, originalStart, view.dataStartByteIndex, copySize); // transfer the contents of supplied buffer to current buffer...
+        }
     }
 
     #createEmptyBuffer(byteSize){
