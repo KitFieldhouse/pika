@@ -1121,6 +1121,12 @@ test("VertexBuffer deletes data", () => {
 
   dataset.appendData([1,2,3,4,5,6], [GL.repeat('x', 'y')]);
 
+  expect(dataset.numberOfPoints("y")).toEqual(3);
+  expect(dataset.numberOfPoints("x")).toEqual(3);
+
+  expect(dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex).toEqual(0);
+  expect(dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex).toEqual(24);
+
   dataset.deleteData('x', 'y');
 
   expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
@@ -1131,7 +1137,11 @@ test("VertexBuffer deletes data", () => {
 
   console.log(reconstructedDataXY)
 
-  expect(reconstructedDataXY).toEqual([0,0,0,0,0,0]);
+  expect(dataset.numberOfPoints("y")).toEqual(0);
+  expect(dataset.numberOfPoints("x")).toEqual(0);
+
+  expect(dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex).toEqual(0);
+  expect(dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex).toEqual(0);
 });
 
 
