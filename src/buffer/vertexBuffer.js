@@ -2,6 +2,8 @@ import {typeInfo, dataViewGetAndSet} from "../private/types.js"
 
 const acceptedDataSources = ["client", "VertexBuffer"];
 
+const deleteInfoKeys = ['side', 'amount', 'lazy'];
+
 
 class VertexBuffer{
 
@@ -109,7 +111,116 @@ class VertexBuffer{
                            () => view.adjustWriteIndexPrepend(data.byteLength));
         }
 
-    } 
+    }
+
+    #deleteData(amountList, isFromEndList, isLazyList){ // this is the internal function that actually does the actual deleting of data.....
+
+        if(amountList.length !== this.#bufferViews.length || isFromEndList.length !== this.#bufferViews.length || isLazyList.length !== this.#bufferViews.length){
+            throw new Error("FAIL(INTERNAL): Failed to provide delete data with the correct number of items in its argument lists!!");
+        }
+
+
+        //TODO: see if this algo couldn't be optimized in some way.....
+
+        let startingDataIndices = this.#bufferViews.map(el => [el.dataStartByteIndex, el.dataEndByteIndex]);
+
+        let doesNotNeedResize = true;
+        let amount = null;
+        let shrinkAmount = null;
+
+        for(let i = 0; i < amountList.length; i++){
+            amount = amountList[i]*this.#bufferViews[i].datumByteSize;
+
+            if(!amount){
+                continue
+            }
+
+            shrinkAmount = isFromEndList[i] ? this.#bufferViews[i].checkResizeEndDelete(amount) :  this.#bufferViews[i].checkResizeStartDelete(amount)
+
+            if(shrinkAmount != null){
+                doesNotNeedResize = false;
+                this.#adjustAllIndices(i+1, -shrinkAmount);
+            }
+
+        }
+
+        if(!doesNotNeedResize){
+            let newBuffer = this.#createEmptyBuffer(this.bufferByteSize);
+            this.#gl_translateDataIntoBuffer(newBuffer, startingDataIndices);
+            this.#gl.gl.deleteBuffer(this.#buffer);
+            this.#buffer = newBuffer;
+            // TODO: once I incorporate VAO's, I will have to notify them here!
+            // one way of doing this is by defining a setter on this.#buffer....
+        }
+    }
+    
+    sizeDataDelete(deleteInfo){
+        //  deleteInfo is an object of objects of the form 
+        //  {<input>: {input: <name>, side: <'start', 'end'> -- should default to natural data flow, 
+        //  amount: <amount> -- should default to all, lazy: <true/false> -- default of false}, .......}
+
+        let effectedByOperation = false
+
+        for(let usedInput of this.#usedInputs){
+            if(deleteInfo[usedInput]){
+                effectedByOperation = true;
+                break;
+            }
+        }
+
+        if(!effectedByOperation){
+            return {pointsDeleted: [0], doDelete: () => null}
+        }
+
+        let deleteAmounts = [];
+        let deleteFromEnds = [];
+        let isLazy = [];
+
+        for(let layoutAtom of this.#layoutAtoms){
+            
+            if(!this.#allInputsAreInDeleteInfo(layoutAtom, deleteInfo)){
+                if(this.#noInputsAreInDeleteInfo(layoutAtom, deleteInfo)){
+                    deleteAmounts.push(0);
+                    deleteFromEnds.push(null);
+                    isLazy.push(null);
+                    continue;
+                }else{
+                    throw new Error("FAIL: all inputs in a layout atom must be deleted together");
+                }
+            }
+
+            // in this case we know that all inputs for this layout have delete info, now we need to make sure that delete info is consistent....
+
+            let deleteInfoForAtom = layoutAtom.arguments.map(el => deleteInfo[el]);
+
+            if(!this.#isDeleteInfoConsistent(deleteInfoForAtom)){
+                throw new Error("FAIL: delete info for inputs in the same layout atom must have the same values");
+            }
+
+            deleteInfoForAtom = deleteInfoForAtom[0]; // choose the first since we just checked that they are all the same....
+
+            deleteAmounts.push(deleteInfoForAtom.amount || this.numberOfPoints(layoutAtom.arguments[0]));
+
+            if(deleteInfoForAtom.side){
+                if(deleteInfoForAtom.side === "start"){
+                    deleteFromEnds.push(false);
+                }else if(deleteInfoForAtom.side === "end"){
+                    deleteFromEnds.push(true);
+                }else{
+                    throw new Error("FAIL: in a delete info object the key 'side' can have value of only either 'start' or 'end'");
+                }
+            }else{
+                deleteFromEnds.push(!(layoutAtom.repeatType === 'end'));
+            }
+
+            isLazy.push(!!(deleteInfoForAtom.lazy));
+
+        }
+
+        return {pointsDeleted: deleteAmounts, 
+                doDelete: () => this.#deleteData(deleteAmounts, deleteFromEnds, isLazy)};
+
+    }
 
     sizeDataAdd(dataSource, layout, data, allAppend, allPrepend, addMethods, opts = {}){
 
@@ -358,6 +469,31 @@ class VertexBuffer{
 
     }
 
+
+    #allInputsAreInDeleteInfo(layoutAtom, deleteInfo){
+
+        for(let arg of layoutAtom.arguments){
+            if(!deleteInfo[arg]){
+                return false
+            }
+        }
+
+        return true;
+
+    }
+
+    #noInputsAreInDeleteInfo(layoutAtom, deleteInfo){
+
+        for(let arg of layoutAtom.arguments){
+            if(deleteInfo[arg]){
+                return false
+            }
+        }
+
+        return true;
+
+    }
+
     #atMostOneDataLayoutForOneInput(layoutAtom, dataLayout){
         for(let arg of layoutAtom.arguments){
             if(dataLayout.getDataLayoutAtoms(arg) && dataLayout.getDataLayoutAtoms(arg).length > 1){
@@ -397,6 +533,21 @@ class VertexBuffer{
         for(let i = 0; i < dataLayoutAtom.repeat.arguments.length; i++){
             if(dataLayoutAtom.repeat.arguments[i] !== layoutAtom.arguments[i]){
                 return false;
+            }
+        }
+
+        return true;
+
+    }
+
+    #isDeleteInfoConsistent(listOfInfo){
+        let firstObj = listOfInfo;
+
+        for(let info of listOfInfo){
+            for(let key of deleteInfoKeys){
+                if(info[key] !== firstObj[key]){
+                    return false;
+                }
             }
         }
 
@@ -491,6 +642,8 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
     #resizeFunction;
     #resizes = 0;
 
+    #sizeHistory = []; // left off here...
+
     constructor(startByteIndex, layoutAtom, inputInfo, resizeFunction){
 
         this.#datumByteSize = layoutAtom.arguments.reduce((acc, el) => inputInfo[el].size*(typeInfo[inputInfo[el].type].bitSize/8.0) + acc , 0)
@@ -570,6 +723,39 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         return null;
     }
 
+    checkResizeStartDelete(numberOfBytes){
+
+        this.#dataStartByteIndex = this.#dataStartByteIndex + numberOfBytes;
+
+        let shrinkAmount = this.calculateShrinkAmount(this.#dataStartByteIndex - this.#startByteIndex);
+
+        if(shrinkAmount){
+            this.#dataStartByteIndex = this.#dataStartByteIndex - shrinkAmount;
+            this.#dataEndByteIndex = this.#dataEndByteIndex - shrinkAmount;
+            this.#endByteIndex = this.#endByteIndex - shrinkAmount;
+
+            return shrinkAmount;
+        }
+
+        return null;
+
+    }
+
+    checkResizeEndDelete(numberOfBytes){
+
+        this.#dataEndByteIndex = this.#dataEndByteIndex - numberOfBytes;
+
+        let shrinkAmount = this.calculateShrinkAmount(this.#dataEndByteIndex - this.#endByteIndex);
+
+        if(shrinkAmount){
+            this.#endByteIndex = this.#endByteIndex - shrinkAmount;
+
+            return shrinkAmount;
+        }
+
+        return null;
+    }
+
     adjustWriteIndexPrepend(numberOfBytes){
 
         if(numberOfBytes % this.#datumByteSize){
@@ -612,6 +798,29 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         }
 
         return increasedByteAmount;
+    }
+
+    calculateShrinkAmount(freeSpace){
+        let finalShrinkAmount;
+
+        let candidateShrinkAmount = 0;
+        let candidateResizes = this.#resizes;
+
+        while(candidateShrinkAmount < freeSpace){
+            finalShrinkAmount = candidateShrinkAmount;
+            this.#resizes = candidateResizes;
+
+
+            if(this.#resizes === 0){
+                finalShrinkAmount = this.byteSize;
+                break;
+            }
+
+            candidateShrinkAmount = candidateShrinkAmount + this.#datumByteSize*this.#resizeFunction(this.#repeatSize, candidateResizes);
+            candidateResizes--;
+        }
+
+        return finalShrinkAmount;
     }
 
     get endByteIndex(){
