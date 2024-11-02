@@ -1146,6 +1146,43 @@ test("VertexBuffer deletes data at end by default", () => {
 
 
 
+test("VertexBuffer can delete data from the start", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  dataset.appendData([1,2,3,4,5,6,7,8,9,10], [GL.repeat('x', 'y')]);
+
+  expect(dataset.numberOfPoints("y")).toEqual(5);
+  expect(dataset.numberOfPoints("x")).toEqual(5);
+
+  expect(dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex).toEqual(0);
+  expect(dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex).toEqual(5*8);
+
+  expect(dataset.deleteData({input: ['x', 'y'], side: "start", amount: 2})).toEqual([[2,0]]);
+
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(1600);
+
+  expect(dataset.numberOfPoints("y")).toEqual(3);
+  expect(dataset.numberOfPoints("x")).toEqual(3);
+
+  expect(dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex).toEqual(2*8);
+  expect(dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex).toEqual(5*8);
+});
+
+
+
 
 
 
