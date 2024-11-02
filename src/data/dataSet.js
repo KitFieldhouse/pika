@@ -253,6 +253,8 @@ class DataSet {
         // can do addition processing here...
 
         effects.forEach(el => el.doDelete());
+
+        return effects.map(el => el.pointsDeleted)
     }
 
     numberOfPoints(input){
