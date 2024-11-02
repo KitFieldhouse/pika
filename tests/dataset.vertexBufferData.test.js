@@ -1104,7 +1104,7 @@ test("VertexBuffer delete checks that inputs that are in a layout atom together 
 
 
 
-test("VertexBuffer deletes data", () => {
+test("VertexBuffer deletes data at end by default", () => {
   const gl = new GL(fakeCanvas);
 
   let inputs = {
@@ -1127,7 +1127,7 @@ test("VertexBuffer deletes data", () => {
   expect(dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex).toEqual(0);
   expect(dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex).toEqual(24);
 
-  dataset.deleteData('x', 'y');
+  expect(dataset.deleteData('x', 'y')).toEqual([[3,0]]);
 
   expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
   expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(1600);
