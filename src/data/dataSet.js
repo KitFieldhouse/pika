@@ -93,7 +93,7 @@ class DataSet {
             }
 
             let initialDataDataSource = this.#determineDataSource(initialData.data);
-            let initialDataLayout = this.#processLayoutInput(initialData.layout, initialData.opts);
+            let initialDataLayout = this.#processLayoutInput( initialDataDataSource, initialData.layout, initialData.opts);
             initialData.layout = initialDataLayout;
             initialData.source = initialDataDataSource;
 
@@ -298,7 +298,7 @@ class DataSet {
             data = [data];
         }
 
-        let layout = this.#processLayoutInput(layoutDesc, opts);
+        let layout = this.#processLayoutInput(dataSource, layoutDesc, opts);
 
         let effects = this.#dataStores.map(el => el.sizeDataAdd(dataSource, layout, data, allAppend, allPrepend, addMethods, opts));
 
@@ -322,7 +322,11 @@ class DataSet {
         throw new Error("FAIL: Data provided to append/prepend cannot be used as a data source.");
     }
 
-    #processLayoutInput(layoutDesc, opts = {}){
+    #processLayoutInput(dataSource, layoutDesc, opts = {}){
+
+        if(dataSource === "dataSet"){
+            return null;
+        }
 
         let layout;
 
