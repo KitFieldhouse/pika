@@ -119,7 +119,7 @@ test("Test that initialData is checked to make sure it provides both initial dat
     layout: [GL.VertexBuffer([GL.repeat('x','y')])],
     initialData: {data: [1,2,3,4,5]}
   }) 
-  ).toThrow("FAIL: initialData must be an object with 'data' and 'layout' properties.");
+  ).toThrow("non dataSet initialData must have a provided layout");
 
 });
 
@@ -134,7 +134,7 @@ test("Test that initialData is checked to make sure it provides both initial dat
     layout: [GL.VertexBuffer([GL.repeat('x','y')])],
     initialData: {layout: [GL.repeat("x")]}
   }) 
-  ).toThrow("FAIL: initialData must be an object with 'data' and 'layout' properties.");
+  ).toThrow("initialData must be an object with at least a 'data' property");
 
 });
 

@@ -82,8 +82,14 @@ class DataSet {
 
         if(initialData){
 
-            if(!initialData.data || !initialData.layout){
-                throw new Error("FAIL: initialData must be an object with 'data' and 'layout' properties.");
+            if(!initialData.data){
+                throw new Error("FAIL: initialData must be an object with at least a 'data' property");
+            }
+
+            if(initialData.data instanceof DataSet){
+                initialData.layout = null;
+            }else if(!initialData.layout){
+                throw new Error("FAIL: non dataSet initialData must have a provided layout");
             }
 
             let initialDataDataSource = this.#determineDataSource(initialData.data);
