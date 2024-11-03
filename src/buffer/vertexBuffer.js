@@ -1,6 +1,6 @@
 import {typeInfo, dataViewGetAndSet} from "../private/types.js"
 
-const acceptedDataSources = ["client", "VertexBuffer"];
+const acceptedDataSources = ["client", "dataSet"];
 
 const deleteInfoKeys = ['side', 'amount', 'lazy'];
 
@@ -328,7 +328,7 @@ class VertexBuffer{
 
         if(!this.#allInputsAreInDataLayout(layoutAtom, dataLayout)){
             if(this.#noInputsAreInDataLayout(layoutAtom, dataLayout)){
-                return {data: null, pts: 0, isAppend: null};
+                return {data: null, pts: 0};
             }else{
                 throw new Error("FAIL: VertexBuffer requires inputs grouped in the same repeat statement to have the same number of points!"); // TODO: improve error message
             }
