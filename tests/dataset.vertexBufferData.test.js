@@ -1,6 +1,7 @@
 import GL from '../src/webglHandler/webglHandler.js'
 import VertexBuffer from '../src/buffer/vertexBuffer.js';
 import fakeCanvas from './fakeCanvas.js';
+import Layout from '../src/data/layout.js';
 
 
 
@@ -42,6 +43,39 @@ test("Test that a vertex buffer dataStore can be initialized with initial data",
     initialData: {
       data: [1,2,3,4,5,6],
       layout: [GL.repeat('x', 'y')]
+    }
+  });
+
+  expect(gl.gl.tests_buffers.length).toBe(1);
+  expect(gl.gl.tests_buffers[0].byteLength).toBe(800);
+
+  expect(Array.from(new Float32Array(gl.gl.tests_buffers[0].slice(0, 24)))).toEqual([1,2,3,4,5,6]);
+
+});
+
+
+test("Test that a vertex buffer dataStore can be initialized with initial data conforming to a predefined layout", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'}
+  };
+
+  let layoutInputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    f: {name: 'f', size: 1, type: 'float'}
+  };
+
+  let layout = new Layout([GL.repeat('x', 'y', 'f')], layoutInputs)
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y')] )],
+    initialData: {
+      data: [1,2,-2,3,4,-4,5,6,-6],
+      layout: layout
     }
   });
 
