@@ -268,7 +268,7 @@ class DataSet {
     #doDataAdd(data, layoutDesc, allAppend, allPrepend, addMethods , opts){
 
         // check arguments.....
-        if(!(layoutDesc instanceof Array)){
+        if(!(layoutDesc instanceof Array) && !(layoutDesc instanceof Layout)){
             if(typeof layoutDesc === 'object' && opts == null){
                 opts = layoutDesc;
                 layoutDesc = null;
@@ -321,7 +321,17 @@ class DataSet {
         if(layoutDesc instanceof Layout){
             layout = layoutDesc;
 
-            if(!layout.hasSameInputDefinitions(this.#inputs)){
+            let inputsToCheck = {};
+        
+            if(opts.inputsToAdd){
+                for(let input of opts.inputsToAdd){
+                    inputsToCheck[input] = this.#inputs[input]
+                }
+            }else{
+                inputsToCheck = this.#inputs;
+            }
+
+            if(!layout.hasSameInputDefinitions(inputsToCheck)){
                 throw new Error("FAIL: layout object does not have the same input definitions as this dataset.");
             }
         }else if(layoutDesc instanceof Array){  // check cache to skip the parsing and object construction time costs of building a new layout.. if cache miss create a new one and cache
