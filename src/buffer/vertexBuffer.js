@@ -811,7 +811,7 @@ class SubBufferView{ // next step is to write append, prepend funcs, then fill o
         let candidateShrinkAmount = 0;
         let candidateResizes = this.#resizes;
 
-        while(candidateShrinkAmount < freeSpace){
+        while(candidateShrinkAmount <= freeSpace){
             finalShrinkAmount = candidateShrinkAmount;
             this.#resizes = candidateResizes;
 
