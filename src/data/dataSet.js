@@ -182,7 +182,12 @@ class DataSet {
         return this.#doDataAdd(data, layoutDesc, false, true, {}, opts);
     }
 
-    addData(data, layoutDesc, addMethods = {}, opts){
+    addData(data, layoutDesc, addMethods, opts){
+        
+        if(!addMethods){
+            throw new Error("FAIL: addData was called with an incorrect argument signature");
+        }
+
         return this.#doDataAdd(data, layoutDesc, false, false, addMethods, opts);
     }
 
