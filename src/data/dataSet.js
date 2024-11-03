@@ -86,8 +86,8 @@ class DataSet {
                 throw new Error("FAIL: initialData must be an object with 'data' and 'layout' properties.");
             }
 
-            let [initialDataDataSource, initialDataLayout] = this.#determineDataSource(initialData.data, initialData.layout);
-            initialDataLayout = this.#processLayoutInput(initialData.layout, initialData.opts);
+            let initialDataDataSource = this.#determineDataSource(initialData.data);
+            let initialDataLayout = this.#processLayoutInput(initialData.layout, initialData.opts);
             initialData.layout = initialDataLayout;
             initialData.source = initialDataDataSource;
 
@@ -194,16 +194,12 @@ class DataSet {
         return this.#doDataAdd(data, layoutDesc, false, true, {}, opts);
     }
 
-    addData(data, layoutDesc, addMethods, opts){
+    addData(data, layoutDesc, addMethods = {}, opts){
 
         if(data instanceof DataSet){
             opts = addMethods;
             addMethods = layoutDesc;
             layoutDesc = null;
-        }
-        
-        if(!addMethods){
-            throw new Error("FAIL: addData was called with an incorrect argument signature");
         }
 
         return this.#doDataAdd(data, layoutDesc, false, false, addMethods, opts);
@@ -290,8 +286,7 @@ class DataSet {
 
     #doDataAdd(data, layoutDesc, allAppend, allPrepend, addMethods , opts){
 
-        let dataSource;
-        [dataSource, layoutDesc] = this.#determineDataSource(data, layoutDesc);
+        let dataSource = this.#determineDataSource(data);
 
         if(dataSource === "client" && !(data instanceof Array)){
             data = [data];
@@ -310,12 +305,12 @@ class DataSet {
 
     }
 
-    #determineDataSource(data, layoutDesc){
+    #determineDataSource(data){
 
-        if(data[isGLObjectRef]){
-            return [data.type, data.layout]
+        if(data instanceof DataSet){
+            return "dataSet"
         }else {
-            return ["client", layoutDesc]
+            return "client"
         }
 
         throw new Error("FAIL: Data provided to append/prepend cannot be used as a data source.");
