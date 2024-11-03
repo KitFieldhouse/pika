@@ -1345,6 +1345,94 @@ test("VertexBuffer delete will shrink array memory footprint if room exists", ()
 
 
 
+test("Test several re-allocations from data add and delete", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x'), GL.endRepeat('y'), GL.repeat('z')] )]
+  });
+
+  let startXIndex = dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex;
+  let endXIndex = dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex;
+
+  let startYIndex = dataset.tests_dataStores[0].tests_views[1].dataStartByteIndex;
+  let endYIndex = dataset.tests_dataStores[0].tests_views[1].dataEndByteIndex;
+
+
+  let startZIndex = dataset.tests_dataStores[0].tests_views[2].dataStartByteIndex;
+  let endZIndex = dataset.tests_dataStores[0].tests_views[2].dataEndByteIndex;
+
+  expect([startXIndex, endXIndex]).toEqual([0,0]);
+  expect([startYIndex, endYIndex]).toEqual([800,800]);
+  expect([startZIndex, endZIndex]).toEqual([800,800]);
+
+
+  let data = [];
+
+  for(let i = 0; i < 101; i++){ // works out to be 1210 data points...
+    data.push(i);
+  }
+
+  dataset.appendData(data, [GL.repeat('x')]);
+  dataset.prependData(data, [GL.repeat('y')]);
+  dataset.appendData([4,5,6], [GL.repeat('z')]);
+
+  startXIndex = dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex;
+  endXIndex = dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex;
+
+  startYIndex = dataset.tests_dataStores[0].tests_views[1].dataStartByteIndex;
+  endYIndex = dataset.tests_dataStores[0].tests_views[1].dataEndByteIndex;
+
+
+  startZIndex = dataset.tests_dataStores[0].tests_views[2].dataStartByteIndex;
+  endZIndex = dataset.tests_dataStores[0].tests_views[2].dataEndByteIndex;
+
+  expect([startXIndex, endXIndex]).toEqual([0, 404]);
+  expect([startYIndex, endYIndex]).toEqual([1196, 1600]);
+  expect([startZIndex, endZIndex]).toEqual([1600, 1612]);
+
+  let reconstructedDataX = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(startXIndex, endXIndex)));
+  let reconstructedDataY = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(startYIndex, endYIndex)));
+  let reconstructedDataZ = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(startZIndex, endZIndex)));
+
+  expect(reconstructedDataX).toEqual(data);
+  expect(reconstructedDataY).toEqual(data);
+  expect(reconstructedDataZ).toEqual([4,5,6]);
+
+
+  dataset.deleteData({input: 'x', amount: 1, side: "end"},{input: 'y', amount: 51, side: "end"}, {input: 'z', amount: 2, side: "start"});
+
+
+  startXIndex = dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex;
+  endXIndex = dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex;
+
+  startYIndex = dataset.tests_dataStores[0].tests_views[1].dataStartByteIndex;
+  endYIndex = dataset.tests_dataStores[0].tests_views[1].dataEndByteIndex;
+
+
+  startZIndex = dataset.tests_dataStores[0].tests_views[2].dataStartByteIndex;
+  endZIndex = dataset.tests_dataStores[0].tests_views[2].dataEndByteIndex;
+
+  expect([startXIndex, endXIndex]).toEqual([0, 400]);
+  expect([startYIndex, endYIndex]).toEqual([1200 - 101*4, 1200 - 51*4]);
+  expect([startZIndex, endZIndex]).toEqual([1208, 1212]);
+
+
+
+
+});
+
+
+
+
+
 
 
 
