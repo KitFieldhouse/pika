@@ -147,7 +147,7 @@ test("Test that provided initialData inputs are checked that they are inputs of 
       {name: 'y', size: 1, type: 'float'}
     ],
     layout: [GL.VertexBuffer([GL.repeat('x','y')])],
-    initialData: {data: [1,2,3,4,5], layout: [GL.repeat("f")]}
+    initialData: {data: [1,2,3,4,5], layout: [GL.repeat("x", "y","f")]}
   }) 
   ).toThrow("was not found for this layout");
 
