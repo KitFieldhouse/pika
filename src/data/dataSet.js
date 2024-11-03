@@ -174,7 +174,7 @@ class DataSet {
 
     // need to figure out generalizations of append/prepend for multi dim data.
 
-    appendData(data, layoutDesc, opts){
+    appendData(data, layoutDesc, opts){ // TODO: add function call signature checks for the addData functions....
 
         if(data instanceof DataSet){
             opts = layoutDesc;
@@ -289,22 +289,6 @@ class DataSet {
     }
 
     #doDataAdd(data, layoutDesc, allAppend, allPrepend, addMethods , opts){
-
-        // check arguments.....
-        if(!(layoutDesc instanceof Array) && !(layoutDesc instanceof Layout)){
-            if(typeof layoutDesc === 'object' && opts == null){
-                opts = layoutDesc;
-                layoutDesc = null;
-            }else{
-                throw new Error("FAIL: appendData was called with an invalid argument signature");
-            }
-        }else{
-            if(typeof opts !== 'object' && opts != null){
-                throw new Error("FAIL: appendData was called with an invalid argument signature");
-            }else{
-                opts = opts || {};
-            }
-        }
 
         let dataSource;
         [dataSource, layoutDesc] = this.#determineDataSource(data, layoutDesc);
