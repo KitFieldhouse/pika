@@ -704,6 +704,120 @@ test("Test datastore prepend on a vertex buffer dataStore with end repeat layout
 });
 
 
+test("Test datastore prepend on a vertex buffer dataStore with end repeat layout will resize and re-locate existing data correctly if encroaching on other layout atoms, large amount of data, center of three views resized", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x'), GL.repeat('y'), GL.repeat('z')] )]
+  });
+
+
+  let data = [];
+
+  for(let i = 0; i < 101; i++){ // works out to be 1210 data points...
+    data.push(i);
+  }
+
+  dataset.appendData([1,2,3], [GL.repeat('x')]);
+  dataset.appendData([4,5,6], [GL.repeat('z')]);
+  dataset.appendData(data, [GL.repeat('y')]);
+
+  let startXIndex = dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex;
+  let endXIndex = dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex;
+
+  let startYIndex = dataset.tests_dataStores[0].tests_views[1].dataStartByteIndex;
+  let endYIndex = dataset.tests_dataStores[0].tests_views[1].dataEndByteIndex;
+
+
+  let startZIndex = dataset.tests_dataStores[0].tests_views[2].dataStartByteIndex;
+  let endZIndex = dataset.tests_dataStores[0].tests_views[2].dataEndByteIndex;
+
+  expect([startXIndex, endXIndex]).toEqual([0, 12]);
+  expect([startYIndex, endYIndex]).toEqual([400, 804]);
+  expect([startZIndex, endZIndex]).toEqual([1200, 1212]);
+
+  let reconstructedDataX = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(startXIndex, endXIndex)));
+  let reconstructedDataY = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(startYIndex, endYIndex)));
+  let reconstructedDataZ = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(startZIndex, endZIndex)));
+
+  expect(reconstructedDataX).toEqual([1,2,3]);
+  expect(reconstructedDataY).toEqual(data);
+  expect(reconstructedDataZ).toEqual([4,5,6]);
+
+});
+
+
+test("Test datastore prepend on a vertex buffer dataStore with end repeat layout will resize and re-locate existing data correctly if encroaching on other layout atoms, large amount of data, two end repeats, mixed append/prepend", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x'), GL.endRepeat('y'), GL.endRepeat('z')] )]
+  });
+
+  let startXIndex = dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex;
+  let endXIndex = dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex;
+
+  let startYIndex = dataset.tests_dataStores[0].tests_views[1].dataStartByteIndex;
+  let endYIndex = dataset.tests_dataStores[0].tests_views[1].dataEndByteIndex;
+
+
+  let startZIndex = dataset.tests_dataStores[0].tests_views[2].dataStartByteIndex;
+  let endZIndex = dataset.tests_dataStores[0].tests_views[2].dataEndByteIndex;
+
+  expect([startXIndex, endXIndex]).toEqual([0,0]);
+  expect([startYIndex, endYIndex]).toEqual([800,800]);
+  expect([startZIndex, endZIndex]).toEqual([1200,1200]);
+
+
+  let data = [];
+
+  for(let i = 0; i < 101; i++){ // works out to be 1210 data points...
+    data.push(i);
+  }
+
+  dataset.appendData(data, [GL.repeat('x')]);
+  dataset.prependData(data, [GL.repeat('y')]);
+  dataset.prependData([4,5,6], [GL.repeat('z')]);
+
+  startXIndex = dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex;
+  endXIndex = dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex;
+
+  startYIndex = dataset.tests_dataStores[0].tests_views[1].dataStartByteIndex;
+  endYIndex = dataset.tests_dataStores[0].tests_views[1].dataEndByteIndex;
+
+
+  startZIndex = dataset.tests_dataStores[0].tests_views[2].dataStartByteIndex;
+  endZIndex = dataset.tests_dataStores[0].tests_views[2].dataEndByteIndex;
+
+  expect([startXIndex, endXIndex]).toEqual([0, 404]);
+  expect([startYIndex, endYIndex]).toEqual([1196, 1600]);
+  expect([startZIndex, endZIndex]).toEqual([1988, 2000]);
+
+  let reconstructedDataX = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(startXIndex, endXIndex)));
+  let reconstructedDataY = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(startYIndex, endYIndex)));
+  let reconstructedDataZ = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(startZIndex, endZIndex)));
+
+  expect(reconstructedDataX).toEqual(data);
+  expect(reconstructedDataY).toEqual(data);
+  expect(reconstructedDataZ).toEqual([4,5,6]);
+
+});
+
+
 
 
 test("Test datastore append on a vertex buffer dataStore, manually selecting which inputs to operate on throws error if inputs do not  exactly span atoms", () => {
