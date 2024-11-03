@@ -658,7 +658,7 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
     }
 
     isSameLayout(otherLayout){
-        if(!this.hasSameInputDefinitions(otherLayout.#inputs)){
+        if(!this.isSameInputList(otherLayout.#inputs)){
             return false
         }
 
@@ -693,20 +693,26 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         return true;
     }
 
-    hasSameInputDefinitions(otherInputs){
 
-        if(Object.keys(this.#inputs).length !== Object.keys(otherInputs).length){
-            return false;
+    isSameInputList(inputsToCheck){
+
+        if(Object.keys(inputsToCheck).length !== Object.keys(this.#inputs).length){
+            return false
         }
 
-        for(let input in this.#inputs){
+        return this.hasSameInputDefinitions(inputsToCheck);
+    }
 
-            if(!otherInputs[input]){
+    hasSameInputDefinitions(inputsToCheck){
+
+        for(let input in inputsToCheck){
+
+            if(!this.#inputs[input]){
                 return false;
             }
 
             for(let key of inputKeys){
-                if(this.#inputs[input][key] !== otherInputs[input][key]){
+                if(this.#inputs[input][key] !== inputsToCheck[input][key]){
                     return false;
                 }
             }
