@@ -157,10 +157,9 @@ test("Test that predefined layout is checked to see if its inputs are in dataSet
   let gl = new GL(fakeCanvas);
 
   let layoutInputs =  {x: {name: 'x', size: 1, type: 'float'},
-                      y: {name: 'y', size: 1, type: 'float'},
-                      f: {name: 'f', size: 2, type: 'float'}}
+                      y: {name: 'y', size: 2, type: 'float'}}
 
-  let predefinedLayout = new Layout([GL.repeat("f")],layoutInputs);
+  let predefinedLayout = new Layout([GL.repeat("x", "y")],layoutInputs);
 
   expect(() => gl.createDataSet({inputs: [
       {name: 'x', size: 1, type: 'float'},
