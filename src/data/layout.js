@@ -9,7 +9,11 @@ import {typeInfo, dataViewGetAndSet} from "../private/types.js"
 const rootGetter = (data) => data; 
 const root = {getter: rootGetter, isRepeat: false};
 
-const inputKeys = ["name", "size", "type", "normalized"]
+const inputKeys = ["name", "size", "type", "normalized"];
+
+const optsKeys = ["expandVectors"];
+
+const cachedLayouts = {};
 
 
 class TransformInputGetIterator{
@@ -160,6 +164,116 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
 
     #opts;
     #layoutArray;
+
+    static areSameInputs(inputs1, inputs2){
+
+        if(inputs1 === inputs2){
+            return true;
+        }
+
+        if(Object.keys(inputs1).length !== Object.keys(inputs2).length){
+            return false
+        }
+
+        return Layout.hasSameInputDefinitions(inputs1, inputs2);
+    }
+
+    static hasSameInputDefinitions(inputs1, inputs2){
+
+        for(let input in inputs1){
+
+            if(!inputs2[input]){
+                return false;
+            }
+
+            for(let key of inputKeys){
+                if(inputs2[input][key] !== inputs1[input][key]){
+                    return false;
+                }
+            }
+        }
+
+        return true
+    }
+
+    static compareLayoutArr(arr1, arr2){
+        if(arr1.length !== arr2.length){
+            return false;
+        }
+
+        for(let i = 0 ; i < arr1.length; i++){
+            let arg1 = arr1[i];
+            let arg2 = arr2[i];
+
+            if(arg1[isLayoutObj]){
+                if(!arg2[isLayoutObj]){
+                    return false;
+                }else if(!Layout.compareRepeats(arg1, arg2)){
+                    return false;
+                }
+            }else if(arg1 !== arg2){ // not layout object so this can only be a string or a symbol
+                return false;
+            }
+        }
+
+        return true
+    }
+
+    static compareRepeats(repeatObj1, repeatObj2){
+
+        if((repeatObj1.opts && !repeatObj2.opts) || (!repeatObj1.opts && repeatObj2.opts)){
+            return false;
+        }
+
+        if(repeatObj1.opts){
+
+            if(Object.keys(repeatObj1.opts).length !== Object.keys(repeatObj2.opts).length){
+                return false;
+            }
+
+            for(let key in repeatObj1.opts){
+                if(repeatObj1.opts[key] !== repeatObj2.opts[key]){
+                    return false;
+                }
+            }
+        }
+
+        if(!Layout.compareLayoutArr(repeatObj1.arguments, repeatObj2.arguments)){
+            return false;
+        }
+
+        return true
+
+
+    }
+
+    static compareOpts(opts1, opts2){
+        if(Object.keys(opts1).length !== Object.keys(opts2).length){
+            return false;
+        }
+
+        for(let opt in opts1){
+
+            if(opts1[opt] instanceof Array){
+                if(!opts2[opt] || !(opts2[opt] instanceof Array) ){
+                    return false;
+                }
+
+                if(!opts1[opt].reduce((acc, el, i) => !acc? false : el === opts2[opt], true)){
+                    return false
+                }
+
+                continue
+
+            }
+
+            if(opts1[opt] !== opts2[opt]){
+                return false
+            }
+        }
+
+        return true;
+    }
 
     constructor(layoutArr, inputs, opts = {}){
 
@@ -658,118 +772,23 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
     }
 
     isSameLayout(otherLayout){
-        if(!this.isSameInputList(otherLayout.#inputs)){
+        if(!Layout.areSameInputs(this.#inputs, otherLayout.#inputs)){
             return false
         }
 
-        if(Object.keys(this.#opts).length !== Object.keys(otherLayout.#opts).length){
+        if(!Layout.compareOpts(this.#opts, otherLayout.#opts)){
             return false;
         }
 
-        for(let opt in this.#opts){
-
-            if(this.#opts[opt] instanceof Array){
-                if(!otherLayout.#opts[opt] || !(otherLayout.#opts[opt] instanceof Array) ){
-                    return false;
-                }
-
-                if(!this.#opts[opt].reduce((acc, el, i) => !acc? false : el === otherLayout.#opts[opt], true)){
-                    return false
-                }
-
-                continue
-
-            }
-
-            if(this.#opts[opt] !== otherLayout.#opts[opt]){
-                return false
-            }
-        }
-
-        if(!this.compareLayoutArr(this.#layoutArray, otherLayout.#layoutArray)){
+        if(!Layout.compareLayoutArr(this.#layoutArray, otherLayout.#layoutArray)){
             return false;
         }
 
         return true;
     }
 
-
-    isSameInputList(inputsToCheck){
-
-        if(Object.keys(inputsToCheck).length !== Object.keys(this.#inputs).length){
-            return false
-        }
-
-        return this.hasSameInputDefinitions(inputsToCheck);
-    }
-
     hasSameInputDefinitions(inputsToCheck){
-
-        for(let input in inputsToCheck){
-
-            if(!this.#inputs[input]){
-                return false;
-            }
-
-            for(let key of inputKeys){
-                if(this.#inputs[input][key] !== inputsToCheck[input][key]){
-                    return false;
-                }
-            }
-        }
-
-        return true
-    }
-
-    compareLayoutArr(arr1, arr2){
-        if(arr1.length !== arr2.length){
-            return false;
-        }
-
-        for(let i = 0 ; i < arr1.length; i++){
-            let arg1 = arr1[i];
-            let arg2 = arr2[i];
-
-            if(arg1[isLayoutObj]){
-                if(!arg2[isLayoutObj]){
-                    return false;
-                }else if(!this.compareRepeats(arg1, arg2)){
-                    return false;
-                }
-            }else if(arg1 !== arg2){ // not layout object so this can only be a string or a symbol
-                return false;
-            }
-        }
-
-        return true
-    }
-
-    compareRepeats(repeatObj1, repeatObj2){
-
-        if((repeatObj1.opts && !repeatObj2.opts) || (!repeatObj1.opts && repeatObj2.opts)){
-            return false;
-        }
-
-        if(repeatObj1.opts){
-
-            if(Object.keys(repeatObj1.opts).length !== Object.keys(repeatObj2.opts).length){
-                return false;
-            }
-
-            for(let key in repeatObj1.opts){
-                if(repeatObj1.opts[key] !== repeatObj2.opts[key]){
-                    return false;
-                }
-            }
-        }
-
-        if(!this.compareLayoutArr(repeatObj1.arguments, repeatObj2.arguments)){
-            return false;
-        }
-
-        return true
-
-
+        return Layout.hasSameInputDefinitions(inputsToCheck ,this.#inputs);
     }
 
     getDataLayoutAtoms(input){
