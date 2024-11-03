@@ -175,14 +175,32 @@ class DataSet {
     // need to figure out generalizations of append/prepend for multi dim data.
 
     appendData(data, layoutDesc, opts){
+
+        if(data instanceof DataSet){
+            opts = layoutDesc;
+            layoutDesc = null;
+        }
+
         return this.#doDataAdd(data, layoutDesc, true, false, {}, opts);
     }
 
     prependData(data, layoutDesc, opts){
+
+        if(data instanceof DataSet){
+            opts = layoutDesc;
+            layoutDesc = null;
+        }
+
         return this.#doDataAdd(data, layoutDesc, false, true, {}, opts);
     }
 
     addData(data, layoutDesc, addMethods, opts){
+
+        if(data instanceof DataSet){
+            opts = addMethods;
+            addMethods = layoutDesc;
+            layoutDesc = null;
+        }
         
         if(!addMethods){
             throw new Error("FAIL: addData was called with an incorrect argument signature");
