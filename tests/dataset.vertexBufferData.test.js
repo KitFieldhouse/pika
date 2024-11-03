@@ -1182,6 +1182,53 @@ test("VertexBuffer can delete data from the start", () => {
 });
 
 
+test("VertexBuffer delete will shrink array memory footprint if room exists", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  let data = [];
+
+  for(let i = 0; i < 500; i++){
+    data.push(i, i*5);
+  }
+
+  dataset.appendData(data, [GL.repeat('x', 'y')]);
+
+  expect(dataset.numberOfPoints("y")).toEqual(500);
+  expect(dataset.numberOfPoints("x")).toEqual(500);
+
+  expect(dataset.deleteData({input: ['x', 'y'], amount: 492})).toEqual([[492,0]]);
+
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(1600);
+
+  expect(dataset.numberOfPoints("y")).toEqual(8);
+  expect(dataset.numberOfPoints("x")).toEqual(8);
+
+  let startIndex = dataset.tests_dataStores[0].tests_views[0].dataStartByteIndex;
+  let endIndex = dataset.tests_dataStores[0].tests_views[0].dataEndByteIndex;
+
+  expect(startIndex).toEqual(0);
+  expect(endIndex).toEqual(8*8);
+
+  let reconstructedDataXY = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(startIndex,endIndex)))
+
+  expect(reconstructedDataXY).toEqual([0,0,1,5,2,10,3,15,4,20,5,25,6,30,7,35]);
+});
+
+
+
 
 
 
