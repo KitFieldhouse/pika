@@ -917,6 +917,49 @@ test("Test datastore append and prepend on a vertex buffer dataStore, manually s
 });
 
 
+test("Test datastore append and prepend on a vertex buffer dataStore, manually selecting which inputs to operate on, predefined layout with differing definitions works if definitions for involved inputs are the same", () => {
+  const gl = new GL(fakeCanvas);
+
+  let inputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 1, type: 'float'},
+    z: {name: 'z', size: 1, type: 'float'}
+  };
+
+
+  let layoutInputs = {
+    y: {name: 'y', size: 1, type: 'float'},
+    x: {name: 'x', size: 1, type: 'float'},
+    w: {name: 'w', size: 3, type: 'float'}, // different!!
+    z: {name: 'z', size: 3, type: 'float'}  // different!!
+  };
+
+  let dataset = gl.createDataSet({
+    inputs: Object.values(inputs),
+    layout: [GL.VertexBuffer( [GL.repeat('x', 'y'), GL.endRepeat('w', 'z')] )]
+  });
+
+  let dataXY = [1,2,3,4];
+  let dataWZ = [-1,-2,-3,-4];
+
+  let data = [...dataXY, ...dataWZ]
+
+  let layout = new Layout([GL.repeat('x', 'y'), GL.repeat('w', 'z')], layoutInputs)
+
+  dataset.appendData(data, layout , {inputsToAdd: ['x', 'y']});
+
+  expect(gl.gl.tests_getNonNullBuffers().length).toBe(1);
+  expect(gl.gl.tests_getNonNullBuffers()[0].byteLength).toBe(1600);
+
+
+  let reconstructedDataXY = Array.from(new Float32Array(gl.gl.tests_getNonNullBuffers()[0].slice(0,16)));
+
+  expect(reconstructedDataXY).toEqual(dataXY);
+
+});
+
+
 
 test("Test datastore append with input index transformer, index transformer maps outside of valid range", () => {
   const gl = new GL(fakeCanvas);
