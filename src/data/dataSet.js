@@ -33,8 +33,6 @@ class DataSet {
 
     #dataStores = [];
 
-    #cachedLayouts = {};
-
     #inputToStoreMap = {}
 
     constructor(inputs, layout, gl, initialData = null){
@@ -348,20 +346,8 @@ class DataSet {
             }
         }else if(layoutDesc instanceof Array){  // check cache to skip the parsing and object construction time costs of building a new layout.. if cache miss create a new one and cache
                                                 // TODO: is this really faster at all??
-            let layoutDescString = JSON.stringify(layoutDesc);
 
-            if(this.#cachedLayouts[layoutDescString]){
-
-                layout = this.#cachedLayouts[layoutDescString];
-
-            }else{
-                layout = new Layout(layoutDesc, this.#inputs, opts);
-
-                if(!opts.disableCache){
-                    this.#cachedLayouts[layoutDescString] = layout;
-                }
-
-            }
+            layout = Layout.getCacheLayout(layoutDesc, this.#inputs, opts);
             
         }else{
             throw new Error("FAIL: second argument to appendData must be either a layout object or an array.");
@@ -370,10 +356,6 @@ class DataSet {
         return layout
     }
 
-
-    get cachedLayouts(){
-        return Object.assign({}, this.#cachedLayouts);
-    }
 
     get tests_dataStores(){
         return this.#dataStores;

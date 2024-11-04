@@ -275,6 +275,29 @@ class Layout { // [repeat([repeat(x), repeat(y)]), [repeat(x), repeat([z])]]
         return true;
     }
 
+
+    static getCacheLayout(layoutArr, inputs, opts = {}){
+
+        let layoutDescJSONString = JSON.stringify(layoutArr);
+        let inputsJSON = JSON.stringify(inputs);
+        let optsJSON = JSON.stringify(opts);
+
+        let keyString = layoutDescJSONString + inputsJSON + optsJSON;
+
+        if(cachedLayouts[keyString]){
+          return cachedLayouts[keyString];
+        }
+        
+        let layout = new Layout(layoutArr, inputs, opts);
+        cachedLayouts[keyString] = layout;
+
+        return layout;
+    }
+
+    static getAllCachedLayouts(){
+        return cachedLayouts;
+    }
+
     constructor(layoutArr, inputs, opts = {}){
 
         if(!(layoutArr instanceof Array)){
