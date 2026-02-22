@@ -1,3 +1,4 @@
+import Layout from "../data/layout.js";
 import {typeInfo, dataViewGetAndSet} from "../private/types.js"
 
 const acceptedDataSources = ["client", "dataSet"];
@@ -16,6 +17,8 @@ class VertexBuffer{
     #resizeFunction;
 
     #layoutAtoms;
+    #atomsDataLayout = [];
+
     #inputInfo;
 
     #inputViewMap = {};
@@ -28,6 +31,8 @@ class VertexBuffer{
         this.#gl = gl;
         this.#layoutAtoms = layoutAtoms;
         this.#inputInfo = inputInfo;
+
+        this.#atomsDataLayout = this.#layoutAtoms.map(el => Layout.getCacheLayout([el], inputInfo))
 
         this.#resizeFunction = (opts && opts.resizeFunction) ? opts.resizeFunction : (repeatAmount, resizes) => repeatAmount*resizes;
 
